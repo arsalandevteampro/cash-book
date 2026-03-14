@@ -7,6 +7,8 @@
   packages = [
     pkgs.jdk21
     pkgs.unzip
+    pkgs.flutter
+    pkgs.dart
   ];
   # Sets environment variables in the workspace
   env = {};
