@@ -1,16 +1,23 @@
 import 'package:flutter/foundation.dart';
 import 'database_service.dart';
+import 'package:intl/intl.dart';
 
 class SettingsService with ChangeNotifier {
   String _currencySymbol = 'Rs';
   String _theme = 'system';
   bool _isLoading = false;
   String? _error;
+  List<String> _customCategories = [];
+  List<String> _customPaymentMethods = [];
+  List<Map<String, String>> _customCurrencies = [];
 
   String get currencySymbol => _currencySymbol;
   String get theme => _theme;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  List<String> get customCategories => _customCategories;
+  List<String> get customPaymentMethods => _customPaymentMethods;
+  List<Map<String, String>> get customCurrencies => _customCurrencies;
 
   // Initialize with Hive database
   Future<void> initialize() async {
@@ -19,10 +26,13 @@ class SettingsService with ChangeNotifier {
       // Load settings from Hive
       _currencySymbol = DatabaseService.getSetting<String>('currency') ?? 'Rs';
       _theme = DatabaseService.getSetting<String>('theme') ?? 'system';
-      
+      _customCategories = DatabaseService.getCustomCategories();
+      _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
+      _customCurrencies = DatabaseService.getCustomCurrencies();
+
       _setError(null);
       if (kDebugMode) {
-        print('✅ Loaded settings from Hive: currency=$_currencySymbol, theme=$_theme');
+        print('✅ Loaded settings from Hive');
       }
     } catch (e) {
       _setError('Failed to initialize settings: $e');
@@ -38,12 +48,12 @@ class SettingsService with ChangeNotifier {
     try {
       // Save to Hive database
       await DatabaseService.updateSetting('currency', newSymbol);
-      
+
       // Update local state
       _currencySymbol = newSymbol;
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Currency updated: $newSymbol');
       }
@@ -59,12 +69,12 @@ class SettingsService with ChangeNotifier {
     try {
       // Save to Hive database
       await DatabaseService.updateSetting('theme', newTheme);
-      
+
       // Update local state
       _theme = newTheme;
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Theme updated: $newTheme');
       }
@@ -87,7 +97,7 @@ class SettingsService with ChangeNotifier {
       for (final entry in settings.entries) {
         await DatabaseService.updateSetting(entry.key, entry.value);
       }
-      
+
       // Update local state
       if (settings.containsKey('currency')) {
         _currencySymbol = settings['currency'] as String;
@@ -95,10 +105,10 @@ class SettingsService with ChangeNotifier {
       if (settings.containsKey('theme')) {
         _theme = settings['theme'] as String;
       }
-      
+
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Settings updated: $settings');
       }
@@ -110,20 +120,43 @@ class SettingsService with ChangeNotifier {
     }
   }
 
+  // Methods to add custom items
+  Future<void> addCustomCategory(String category) async {
+    await DatabaseService.addCustomCategory(category);
+    _customCategories = DatabaseService.getCustomCategories();
+    notifyListeners();
+  }
+
+  Future<void> addCustomPaymentMethod(String paymentMethod) async {
+    await DatabaseService.addCustomPaymentMethod(paymentMethod);
+    _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
+    notifyListeners();
+  }
+
+  Future<void> addCustomCurrency(String name, String symbol) async {
+    await DatabaseService.addCustomCurrency({'name': name, 'symbol': symbol});
+    _customCurrencies = DatabaseService.getCustomCurrencies();
+    notifyListeners();
+  }
+
   // Reset to default settings
   Future<void> resetToDefaults() async {
     try {
       await updateSettings({
         'currency': 'Rs',
         'theme': 'system',
+        'customCategories': [],
+        'customPaymentMethods': [],
       });
-      
+
       // Update local state
       _currencySymbol = 'Rs';
       _theme = 'system';
+      _customCategories = [];
+      _customPaymentMethods = [];
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Settings reset to defaults');
       }
@@ -152,5 +185,15 @@ class SettingsService with ChangeNotifier {
   // Refresh settings from database
   Future<void> refresh() async {
     await initialize();
+  }
+
+  // Formatting utilities
+  String formatAmount(double amount) {
+    final formatter = NumberFormat('#,##0.00', 'en_US');
+    return formatter.format(amount);
+  }
+
+  String formatCurrency(double amount) {
+    return '$_currencySymbol ${formatAmount(amount)}';
   }
 }

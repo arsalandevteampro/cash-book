@@ -16,7 +16,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
   final _incomeController = TextEditingController();
   final _expenseController = TextEditingController();
   final _savingsController = TextEditingController();
-  
+
   bool _isLoading = false;
 
   @override
@@ -28,7 +28,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
   void _loadCurrentGoals() {
     final goalsService = Provider.of<GoalsService>(context, listen: false);
     final goals = goalsService.goals;
-    
+
     _incomeController.text = goals.monthlyIncomeTarget.toStringAsFixed(0);
     _expenseController.text = goals.monthlyExpenseLimit.toStringAsFixed(0);
     _savingsController.text = goals.savingsTarget.toStringAsFixed(0);
@@ -51,7 +51,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
 
     try {
       final goalsService = Provider.of<GoalsService>(context, listen: false);
-      
+
       await goalsService.updateGoals(
         monthlyIncomeTarget: double.parse(_incomeController.text),
         monthlyExpenseLimit: double.parse(_expenseController.text),
@@ -126,7 +126,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Monthly Income Target
               _buildGoalCard(
                 title: 'Monthly Income Target',
@@ -136,9 +136,9 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                 currencySymbol: currencySymbol,
                 description: 'Set your target monthly income',
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Monthly Expense Limit
               _buildGoalCard(
                 title: 'Monthly Expense Limit',
@@ -148,9 +148,9 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                 currencySymbol: currencySymbol,
                 description: 'Set your maximum monthly spending limit',
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Savings Target
               _buildGoalCard(
                 title: 'Monthly Savings Target',
@@ -160,9 +160,9 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                 currencySymbol: currencySymbol,
                 description: 'Set your target monthly savings amount',
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               // Save Button
               SizedBox(
                 width: double.infinity,
@@ -182,7 +182,9 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text(
@@ -224,11 +226,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                     color: color.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    icon,
-                    color: color,
-                    size: 24,
-                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -244,10 +242,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                       ),
                       Text(
                         description,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ),

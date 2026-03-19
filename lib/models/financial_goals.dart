@@ -6,13 +6,13 @@ part 'financial_goals.g.dart';
 class FinancialGoals extends HiveObject {
   @HiveField(0)
   double monthlyIncomeTarget;
-  
+
   @HiveField(1)
   double monthlyExpenseLimit;
-  
+
   @HiveField(2)
   double savingsTarget;
-  
+
   @HiveField(3)
   DateTime lastUpdated;
 
@@ -30,6 +30,28 @@ class FinancialGoals extends HiveObject {
       monthlyExpenseLimit: 30000.0,
       savingsTarget: 20000.0,
       lastUpdated: DateTime.now(),
+    );
+  }
+
+  // Convert to Map
+  Map<String, dynamic> toMap() {
+    return {
+      'monthlyIncomeTarget': monthlyIncomeTarget,
+      'monthlyExpenseLimit': monthlyExpenseLimit,
+      'savingsTarget': savingsTarget,
+      'lastUpdated': lastUpdated.millisecondsSinceEpoch,
+    };
+  }
+
+  // Create from Map
+  factory FinancialGoals.fromMap(Map<String, dynamic> map) {
+    return FinancialGoals(
+      monthlyIncomeTarget: (map['monthlyIncomeTarget'] ?? 50000.0).toDouble(),
+      monthlyExpenseLimit: (map['monthlyExpenseLimit'] ?? 30000.0).toDouble(),
+      savingsTarget: (map['savingsTarget'] ?? 20000.0).toDouble(),
+      lastUpdated: DateTime.fromMillisecondsSinceEpoch(
+        map['lastUpdated'] ?? DateTime.now().millisecondsSinceEpoch,
+      ),
     );
   }
 

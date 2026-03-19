@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../models/financial_goals.dart';
 import 'database_service.dart';
@@ -25,7 +26,7 @@ class GoalsService with ChangeNotifier {
         _goals = FinancialGoals.getDefault();
         await DatabaseService.saveFinancialGoals(_goals);
       }
-      
+
       _setError(null);
       if (kDebugMode) {
         print('✅ Loaded financial goals from Hive');
@@ -55,12 +56,12 @@ class GoalsService with ChangeNotifier {
 
       // Save to Hive database
       await DatabaseService.saveFinancialGoals(updatedGoals);
-      
+
       // Update local goals
       _goals = updatedGoals;
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Financial goals updated');
       }
@@ -73,13 +74,21 @@ class GoalsService with ChangeNotifier {
   }
 
   void _setLoading(bool loading) {
+    if (_isLoading == loading) return;
     _isLoading = loading;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void _setError(String? error) {
+    if (_error == error) return;
     _error = error;
-    notifyListeners();
+    _safeNotifyListeners();
+  }
+
+  void _safeNotifyListeners() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 
   void clearError() {

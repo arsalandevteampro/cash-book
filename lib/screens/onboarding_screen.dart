@@ -18,9 +18,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_complete', true);
     if (mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
     }
   }
 
@@ -33,19 +33,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         context: context,
         imageAsset: 'assets/images/onboarding1.png',
         title: 'Welcome to Cash Book',
-        subtitle: 'The simplest way to track your income and expenses, helping you manage your money with ease.',
+        subtitle:
+            'The simplest way to track your income and expenses, helping you manage your money with ease.',
       ),
       _buildPage(
         context: context,
         imageAsset: 'assets/images/onboarding2.png',
         title: 'Effortless Tracking',
-        subtitle: 'Quickly add transactions and see a clear overview of your financial health at a glance.',
+        subtitle:
+            'Quickly add transactions and see a clear overview of your financial health at a glance.',
       ),
       _buildPage(
         context: context,
         imageAsset: 'assets/images/onboarding3.png',
         title: 'Gain Financial Insight',
-        subtitle: 'Understand your spending habits with visual summaries and take control of your budget.',
+        subtitle:
+            'Understand your spending habits with visual summaries and take control of your budget.',
       ),
     ];
 
@@ -55,7 +58,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           children: <Widget>[
             Expanded(
               flex: 3,
-              child: PageView( 
+              child: PageView(
                 controller: _pageController,
                 onPageChanged: (int page) {
                   setState(() {
@@ -74,7 +77,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   children: <Widget>[
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(onboardingPages.length, (index) => _buildDot(index, context)),
+                      children: List.generate(
+                        onboardingPages.length,
+                        (index) => _buildDot(index, context),
+                      ),
                     ),
                     const Spacer(),
                     if (_currentPage == onboardingPages.length - 1)
@@ -87,7 +93,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       )
                     else
                       ElevatedButton(
-                         onPressed: () {
+                        onPressed: () {
                           _pageController.nextPage(
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.easeInOut,
@@ -101,12 +107,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     const SizedBox(height: 16),
                     TextButton(
                       onPressed: _completeOnboarding,
-                      child: Text('Skip', style: TextStyle(color: colorScheme.primary)),
-                    )
+                      child: Text(
+                        'Skip',
+                        style: TextStyle(color: colorScheme.primary),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -121,7 +130,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }) {
     final textTheme = Theme.of(context).textTheme;
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     // Use icons instead of images
     IconData icon;
     if (imageAsset.contains('onboarding1')) {
@@ -131,7 +140,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     } else {
       icon = Icons.analytics;
     }
-    
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -141,19 +150,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             height: 200,
             width: 200,
             decoration: BoxDecoration(
-              color: colorScheme.primary.withValues(alpha: 0.1),
+              color: colorScheme.primary.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 100,
-              color: colorScheme.primary,
-            ),
+            child: Icon(icon, size: 100, color: colorScheme.primary),
           ),
           const SizedBox(height: 40),
           Text(
             title,
-            style: textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            style: textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -174,7 +181,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 8,
       width: _currentPage == index ? 24 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? Theme.of(context).colorScheme.primary : Colors.grey,
+        color: _currentPage == index
+            ? Theme.of(context).colorScheme.primary
+            : Colors.grey,
         borderRadius: BorderRadius.circular(5),
       ),
     );

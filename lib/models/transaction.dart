@@ -30,21 +30,27 @@ enum PaymentMethod {
 class Transaction extends HiveObject {
   @HiveField(0)
   final String id;
-  
+
   @HiveField(1)
   final String title;
-  
+
   @HiveField(2)
   final double amount;
-  
+
   @HiveField(3)
   final DateTime date;
-  
+
   @HiveField(4)
   final TransactionType type;
-  
+
   @HiveField(5)
   final PaymentMethod paymentMethod;
+
+  @HiveField(6)
+  final String category;
+
+  @HiveField(8)
+  final String? customPaymentMethod;
 
   Transaction({
     required this.id,
@@ -53,6 +59,8 @@ class Transaction extends HiveObject {
     required this.date,
     required this.type,
     required this.paymentMethod,
+    this.category = 'General',
+    this.customPaymentMethod,
   });
 
   // Convert Transaction to Map for compatibility
@@ -64,6 +72,8 @@ class Transaction extends HiveObject {
       'date': date.millisecondsSinceEpoch,
       'type': type.name,
       'paymentMethod': paymentMethod.name,
+      'category': category,
+      'customPaymentMethod': customPaymentMethod,
     };
   }
 
@@ -82,6 +92,8 @@ class Transaction extends HiveObject {
         (e) => e.name == map['paymentMethod'],
         orElse: () => PaymentMethod.cash,
       ),
+      category: map['category'] ?? 'General',
+      customPaymentMethod: map['customPaymentMethod'],
     );
   }
 
@@ -93,6 +105,8 @@ class Transaction extends HiveObject {
     DateTime? date,
     TransactionType? type,
     PaymentMethod? paymentMethod,
+    String? category,
+    String? customPaymentMethod,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -101,12 +115,14 @@ class Transaction extends HiveObject {
       date: date ?? this.date,
       type: type ?? this.type,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      category: category ?? this.category,
+      customPaymentMethod: customPaymentMethod ?? this.customPaymentMethod,
     );
   }
 
   @override
   String toString() {
-    return 'Transaction(id: $id, title: $title, amount: $amount, date: $date, type: $type, paymentMethod: $paymentMethod)';
+    return 'Transaction(id: $id, title: $title, amount: $amount, date: $date, type: $type, paymentMethod: $paymentMethod, category: $category, customPaymentMethod: $customPaymentMethod)';
   }
 
   @override
@@ -118,7 +134,9 @@ class Transaction extends HiveObject {
         other.amount == amount &&
         other.date == date &&
         other.type == type &&
-        other.paymentMethod == paymentMethod;
+        other.paymentMethod == paymentMethod &&
+        other.category == category &&
+        other.customPaymentMethod == customPaymentMethod;
   }
 
   @override
@@ -128,6 +146,8 @@ class Transaction extends HiveObject {
         amount.hashCode ^
         date.hashCode ^
         type.hashCode ^
-        paymentMethod.hashCode;
+        paymentMethod.hashCode ^
+        category.hashCode ^
+        customPaymentMethod.hashCode;
   }
 }

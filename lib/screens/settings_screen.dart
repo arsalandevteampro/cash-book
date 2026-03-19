@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/settings_service.dart';
+import 'backup_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,7 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settingsService = Provider.of<SettingsService>(context);
     final textTheme = Theme.of(context).textTheme;
 
-    final List<Map<String, String>> currencies = [
+    final List<Map<String, String>> defaultCurrencies = [
       {'name': 'Pakistani Rupee', 'symbol': 'Rs'},
       {'name': 'Indian Rupee', 'symbol': '₹'},
       {'name': 'US Dollar', 'symbol': '\$'},
@@ -31,12 +32,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'name': 'Malaysian Ringgit', 'symbol': 'RM'},
     ];
 
-    bool isCurrentSymbolInList = currencies.any((c) => c['symbol'] == settingsService.currencySymbol);
+    final allCurrencies = [
+      ...defaultCurrencies,
+      ...settingsService.customCurrencies,
+    ];
+    bool isCurrentSymbolInList = allCurrencies.any(
+      (c) => c['symbol'] == settingsService.currencySymbol,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-      ),
+      appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: <Widget>[
@@ -48,12 +53,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Text(
                     'General',
-                    style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  _buildCurrencySetting(context, settingsService, currencies, isCurrentSymbolInList),
+                  _buildCurrencySetting(
+                    context,
+                    settingsService,
+                    allCurrencies,
+                    isCurrentSymbolInList,
+                  ),
                   const SizedBox(height: 24),
                   _buildThemeSetting(context, settingsService),
+                  const SizedBox(height: 24),
+                  _buildBackupSetting(context),
                 ],
               ),
             ),
@@ -66,14 +80,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
               subtitle: const Text('Version 1.0.0'),
               onTap: () {
                 // Show about dialog
-                 showAboutDialog(
+                showAboutDialog(
                   context: context,
                   applicationName: 'Cash Book',
                   applicationVersion: '1.0.0',
                   applicationLegalese: '© 2024 Your Company',
                   children: <Widget>[
                     const SizedBox(height: 15),
-                    const Text('A simple app to manage your daily income and expenses.')
+                    const Text(
+                      'A simple app to manage your daily income and expenses.',
+                    ),
                   ],
                 );
               },
@@ -99,12 +115,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          initialValue: isCurrentSymbolInList ? settingsService.currencySymbol : currencies.first['symbol'],
+          initialValue: isCurrentSymbolInList
+              ? settingsService.currencySymbol
+              : currencies.first['symbol'],
           decoration: const InputDecoration(
             prefixIcon: Icon(Icons.currency_rupee),
             border: OutlineInputBorder(),
           ),
           onChanged: (String? newSymbol) async {
+            if (newSymbol == 'ADD_NEW') {
+              _showAddCurrencyDialog(context, settingsService);
+              return;
+            }
             if (newSymbol != null) {
               try {
                 await settingsService.setCurrency(newSymbol);
@@ -120,7 +142,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error: ${settingsService.error ?? e.toString()}'),
+                      content: Text(
+                        'Error: ${settingsService.error ?? e.toString()}',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -128,25 +152,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
               }
             }
           },
-          items: currencies.map<DropdownMenuItem<String>>((Map<String, String> currency) {
-            return DropdownMenuItem<String>(
-              value: currency['symbol'],
-              child: Text('${currency['name']} (${currency['symbol']})'),
-            );
-          }).toList(),
+          items: [
+            ...currencies.map<DropdownMenuItem<String>>((
+              Map<String, String> currency,
+            ) {
+              return DropdownMenuItem<String>(
+                value: currency['symbol'],
+                child: Text('${currency['name']} (${currency['symbol']})'),
+              );
+            }),
+            const DropdownMenuItem<String>(
+              value: 'ADD_NEW',
+              child: Row(
+                children: [
+                  Icon(Icons.add, size: 20, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Add Custom...', style: TextStyle(color: Colors.blue)),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildThemeSetting(BuildContext context, SettingsService settingsService) {
+  Widget _buildThemeSetting(
+    BuildContext context,
+    SettingsService settingsService,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Theme',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Theme', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
@@ -193,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     IconData icon,
   ) {
     final isSelected = settingsService.theme == value;
-    
+
     return InkWell(
       onTap: () async {
         await _updateTheme(context, settingsService, value, title);
@@ -201,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
               : Colors.transparent,
         ),
@@ -210,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Icon(
               icon,
               size: 20,
-              color: isSelected 
+              color: isSelected
                   ? Theme.of(context).colorScheme.primary
                   : Theme.of(context).colorScheme.onSurface,
             ),
@@ -219,7 +257,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Text(
                 title,
                 style: TextStyle(
-                  color: isSelected 
+                  color: isSelected
                       ? Theme.of(context).colorScheme.primary
                       : Theme.of(context).colorScheme.onSurface,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
@@ -244,7 +282,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Future<void> _updateTheme(BuildContext context, SettingsService settingsService, String newTheme, String themeName) async {
+  Future<void> _updateTheme(
+    BuildContext context,
+    SettingsService settingsService,
+    String newTheme,
+    String themeName,
+  ) async {
     try {
       await settingsService.setTheme(newTheme);
       if (context.mounted) {
@@ -265,5 +308,98 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
       }
     }
+  }
+
+  void _showAddCurrencyDialog(
+    BuildContext context,
+    SettingsService settingsService,
+  ) {
+    final nameController = TextEditingController();
+    final symbolController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Custom Currency'),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Currency Name (e.g. BTC)',
+                ),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Required' : null,
+              ),
+              TextFormField(
+                controller: symbolController,
+                decoration: const InputDecoration(labelText: 'Symbol (e.g. ₿)'),
+                validator: (val) =>
+                    val == null || val.isEmpty ? 'Required' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                await settingsService.addCustomCurrency(
+                  nameController.text,
+                  symbolController.text,
+                );
+                await settingsService.setCurrency(symbolController.text);
+                if (context.mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBackupSetting(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text('Data Management', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.cloud_done_rounded,
+              color: Theme.of(context).primaryColor,
+              size: 20,
+            ),
+          ),
+          title: const Text('Backup & Restore'),
+          subtitle: const Text('Manage your data on Google Drive'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const BackupSettingsScreen(),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }

@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "443901648986",
+    "project_id": "devteampro",
+    "storage_bucket": "devteampro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443901648986:android:25d1374a995b315b49f863",
+        "android_client_info": {
+          "package_name": "com.masjidsyedazahra"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443901648986:android:f8df631f56e3f4b249f863",
+        "android_client_info": {
+          "package_name": "com.myfirebaseapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443901648986:android:ad23eb5df0c6a4d349f863",
+        "android_client_info": {
+          "package_name": "come.cashbook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

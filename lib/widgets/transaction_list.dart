@@ -8,16 +8,17 @@ import '../models/transaction.dart';
 import '../screens/add_transaction_screen.dart';
 
 class TransactionList extends StatelessWidget {
-  const TransactionList({super.key});
+  final List<Transaction>? transactions;
+  const TransactionList({super.key, this.transactions});
 
   @override
   Widget build(BuildContext context) {
     final transactionService = Provider.of<TransactionService>(context);
     final settingsService = Provider.of<SettingsService>(context);
-    final transactions = transactionService.transactions;
+    final displayTransactions = transactions ?? transactionService.transactions;
     final textTheme = Theme.of(context).textTheme;
 
-    return transactions.isEmpty
+    return displayTransactions.isEmpty
         ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -35,11 +36,17 @@ class TransactionList extends StatelessWidget {
             ),
           )
         : ListView.builder(
-            padding: const EdgeInsets.only(top: 8, bottom: 80), // Padding for FAB
-            itemCount: transactions.length,
+            padding: const EdgeInsets.only(
+              top: 8,
+              bottom: 80,
+            ), // Padding for FAB
+            itemCount: displayTransactions.length,
             itemBuilder: (ctx, index) {
-              final tx = transactions[index];
-              return _TransactionItem(transaction: tx, settingsService: settingsService);
+              final tx = displayTransactions[index];
+              return _TransactionItem(
+                transaction: tx,
+                settingsService: settingsService,
+              );
             },
           );
   }
@@ -67,12 +74,17 @@ class _TransactionItem extends StatelessWidget {
       case PaymentMethod.upi:
         return Icons.phone_android;
       case PaymentMethod.other:
-        return Icons.more_horiz;
+        return Icons.payment;
     }
   }
 
-  String _getPaymentMethodLabel(PaymentMethod method) {
-    switch (method) {
+  String _getPaymentMethodLabel(Transaction tx) {
+    if (tx.paymentMethod == PaymentMethod.other &&
+        tx.customPaymentMethod != null &&
+        tx.customPaymentMethod!.isNotEmpty) {
+      return tx.customPaymentMethod!;
+    }
+    switch (tx.paymentMethod) {
       case PaymentMethod.cash:
         return 'Cash';
       case PaymentMethod.online:
@@ -91,60 +103,132 @@ class _TransactionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
-    final Color color = isIncome ? Colors.green.shade600 : Colors.red.shade600;
-    final IconData icon = isIncome ? Icons.arrow_upward : Icons.arrow_downward;
+    final Color color = isIncome
+        ? const Color(0xFF00796B)
+        : const Color(0xFFD32F2F);
+    final IconData icon = isIncome ? Icons.add_rounded : Icons.remove_rounded;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: color.withAlpha(26), // 10% opacity
-          child: Icon(icon, color: color, size: 24),
-        ),
-        title: Text(
-          transaction.title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(DateFormat('MMM d, yyyy').format(transaction.date)),
-            const SizedBox(height: 2),
-            Row(
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color ?? Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.withOpacity(0.05)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (ctx) =>
+                    AddTransactionScreen(transaction: transaction),
+              ),
+            );
+          },
+          onLongPress: () {
+            _showDeleteConfirmation(context, transaction.id);
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
               children: [
-                Icon(_getPaymentMethodIcon(transaction.paymentMethod), size: 16, color: Colors.grey.shade600),
-                const SizedBox(width: 4),
-                Text(
-                  _getPaymentMethodLabel(transaction.paymentMethod),
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                // Icon with soft background
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                const SizedBox(width: 16),
+                // Title and secondary info
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        transaction.title,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              transaction.category,
+                              style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            _getPaymentMethodIcon(transaction.paymentMethod),
+                            size: 12,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getPaymentMethodLabel(transaction),
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                // Amount and Date
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${isIncome ? '+' : '-'} ${settingsService.formatCurrency(transaction.amount)}',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      DateFormat('MMM d').format(transaction.date),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              '${isIncome ? '+' : '-'} ${settingsService.currencySymbol} ${transaction.amount.toStringAsFixed(2)}',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-          ],
-        ),
-        onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (ctx) => AddTransactionScreen(transaction: transaction),
-            ),
-          );
-        },
-        onLongPress: () {
-          _showDeleteConfirmation(context, transaction.id);
-        },
       ),
     );
   }
@@ -154,7 +238,9 @@ class _TransactionItem extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete Transaction'),
-        content: const Text('Are you sure you want to delete this transaction?'),
+        content: const Text(
+          'Are you sure you want to delete this transaction?',
+        ),
         actions: <Widget>[
           TextButton(
             child: const Text('Cancel'),
@@ -166,22 +252,24 @@ class _TransactionItem extends StatelessWidget {
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              
+
               // Show loading indicator
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (context) => const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                builder: (context) =>
+                    const Center(child: CircularProgressIndicator()),
               );
 
               try {
-                await Provider.of<TransactionService>(context, listen: false).deleteTransaction(id);
-                
+                await Provider.of<TransactionService>(
+                  context,
+                  listen: false,
+                ).deleteTransaction(id);
+
                 // Close loading dialog
                 if (context.mounted) Navigator.of(context).pop();
-                
+
                 // Show success message
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -194,13 +282,18 @@ class _TransactionItem extends StatelessWidget {
               } catch (e) {
                 // Close loading dialog
                 if (context.mounted) Navigator.of(context).pop();
-                
+
                 // Show error message
                 if (context.mounted) {
-                  final transactionService = Provider.of<TransactionService>(context, listen: false);
+                  final transactionService = Provider.of<TransactionService>(
+                    context,
+                    listen: false,
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error: ${transactionService.error ?? e.toString()}'),
+                      content: Text(
+                        'Error: ${transactionService.error ?? e.toString()}',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );

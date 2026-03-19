@@ -9,13 +9,15 @@ class TransactionService with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  UnmodifiableListView<Transaction> get transactions => UnmodifiableListView(_transactions);
+  UnmodifiableListView<Transaction> get transactions =>
+      UnmodifiableListView(_transactions);
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   double get balance => _transactions.fold(0.0, (sum, item) {
-        return sum + (item.type == TransactionType.income ? item.amount : -item.amount);
-      });
+    return sum +
+        (item.type == TransactionType.income ? item.amount : -item.amount);
+  });
 
   double get totalIncome => _transactions
       .where((tx) => tx.type == TransactionType.income)
@@ -32,10 +34,10 @@ class TransactionService with ChangeNotifier {
       // Load transactions from Hive
       _transactions.clear();
       _transactions.addAll(DatabaseService.getAllTransactions());
-      
+
       // Sort by date (newest first)
       _transactions.sort((a, b) => b.date.compareTo(a.date));
-      
+
       _setError(null);
       if (kDebugMode) {
         print('✅ Loaded ${_transactions.length} transactions from Hive');
@@ -50,7 +52,15 @@ class TransactionService with ChangeNotifier {
     }
   }
 
-  Future<void> addTransaction(String title, double amount, TransactionType type, DateTime date, PaymentMethod paymentMethod) async {
+  Future<void> addTransaction(
+    String title,
+    double amount,
+    TransactionType type,
+    DateTime date,
+    PaymentMethod paymentMethod,
+    String category, {
+    String? customPaymentMethod,
+  }) async {
     try {
       final newTransaction = Transaction(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -59,16 +69,21 @@ class TransactionService with ChangeNotifier {
         date: date,
         type: type,
         paymentMethod: paymentMethod,
+        category: category,
+        customPaymentMethod: customPaymentMethod,
       );
 
       // Save to Hive database
       await DatabaseService.addTransaction(newTransaction);
-      
+
       // Update local list
-      _transactions.insert(0, newTransaction); // Insert at beginning for newest first
+      _transactions.insert(
+        0,
+        newTransaction,
+      ); // Insert at beginning for newest first
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Transaction added: ${newTransaction.title}');
       }
@@ -84,14 +99,16 @@ class TransactionService with ChangeNotifier {
     try {
       // Update in Hive database
       await DatabaseService.updateTransaction(updatedTransaction);
-      
+
       // Update local list
-      final txIndex = _transactions.indexWhere((tx) => tx.id == updatedTransaction.id);
+      final txIndex = _transactions.indexWhere(
+        (tx) => tx.id == updatedTransaction.id,
+      );
       if (txIndex >= 0) {
         _transactions[txIndex] = updatedTransaction;
         _setError(null);
         notifyListeners();
-        
+
         if (kDebugMode) {
           print('✅ Transaction updated: ${updatedTransaction.title}');
         }
@@ -108,12 +125,12 @@ class TransactionService with ChangeNotifier {
     try {
       // Delete from Hive database
       await DatabaseService.deleteTransaction(id);
-      
+
       // Update local list
       _transactions.removeWhere((tx) => tx.id == id);
       _setError(null);
       notifyListeners();
-      
+
       if (kDebugMode) {
         print('✅ Transaction deleted: $id');
       }
@@ -123,35 +140,6 @@ class TransactionService with ChangeNotifier {
         print('Error deleting transaction: $e');
       }
     }
-  }
-
-  // Get transactions by date range
-  List<Transaction> getTransactionsByDateRange(DateTime start, DateTime end) {
-    return _transactions.where((tx) {
-      return tx.date.isAfter(start.subtract(const Duration(days: 1))) &&
-             tx.date.isBefore(end.add(const Duration(days: 1)));
-    }).toList();
-  }
-
-  // Get transactions by type
-  List<Transaction> getTransactionsByType(TransactionType type) {
-    return _transactions.where((tx) => tx.type == type).toList();
-  }
-
-  // Get recent transactions (last N days)
-  List<Transaction> getRecentTransactions(int days) {
-    final cutoffDate = DateTime.now().subtract(Duration(days: days));
-    return _transactions.where((tx) => tx.date.isAfter(cutoffDate)).toList();
-  }
-
-  // Search transactions
-  List<Transaction> searchTransactions(String query) {
-    if (query.isEmpty) return _transactions;
-    
-    final lowercaseQuery = query.toLowerCase();
-    return _transactions.where((tx) {
-      return tx.title.toLowerCase().contains(lowercaseQuery);
-    }).toList();
   }
 
   void _setLoading(bool loading) {

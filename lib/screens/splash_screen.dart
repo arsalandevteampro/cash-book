@@ -30,8 +30,14 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         // Initialize services after the build is complete
         WidgetsBinding.instance.addPostFrameCallback((_) async {
-          final transactionService = Provider.of<TransactionService>(context, listen: false);
-          final settingsService = Provider.of<SettingsService>(context, listen: false);
+          final transactionService = Provider.of<TransactionService>(
+            context,
+            listen: false,
+          );
+          final settingsService = Provider.of<SettingsService>(
+            context,
+            listen: false,
+          );
 
           // Initialize services
           await Future.wait([
@@ -41,7 +47,8 @@ class _SplashScreenState extends State<SplashScreen> {
 
           // Check onboarding status
           final prefs = await SharedPreferences.getInstance();
-          final bool onboardingComplete = prefs.getBool('onboarding_complete') ?? false;
+          final bool onboardingComplete =
+              prefs.getBool('onboarding_complete') ?? false;
 
           if (mounted) {
             if (onboardingComplete) {
