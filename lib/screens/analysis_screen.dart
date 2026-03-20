@@ -246,21 +246,33 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              Text(
-                title,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.right,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.7),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            settingsService.formatCurrency(amount),
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              settingsService.formatCurrency(amount),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
           ),
         ],
       ),
@@ -474,9 +486,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildLegendItem('Income', Colors.green),
-                const SizedBox(width: 24),
-                _buildLegendItem('Expense', Colors.red),
+                Expanded(child: _buildLegendItem('Income', Colors.green)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildLegendItem('Expense', Colors.red)),
               ],
             ),
           ],
@@ -491,11 +503,15 @@ class _AnalysisScreenState extends State<AnalysisScreen>
       children: [
         Container(width: 16, height: 16, color: color),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurface,
+        Flexible(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ),
       ],
@@ -538,15 +554,30 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       color: isIncome ? Colors.green : Colors.red,
                     ),
                   ),
-                  title: Text(transaction.title),
+                  title: Text(
+                    transaction.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   subtitle: Text(
                     DateFormat('MMM dd, yyyy').format(transaction.date),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  trailing: Text(
-                    '${isIncome ? '+' : '-'}${settingsService.formatCurrency(transaction.amount)}',
-                    style: TextStyle(
-                      color: isIncome ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.bold,
+                  trailing: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width * 0.3,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '${isIncome ? '+' : '-'}${settingsService.formatCurrency(transaction.amount)}',
+                        style: TextStyle(
+                          color: isIncome ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -639,14 +670,22 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                                 color: Theme.of(context).colorScheme.onSurface,
                               ),
                               overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
-                          Text(
-                            '${isExpense ? '-' : '+'}${settingsService.formatCurrency(displayAmount)}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: isExpense ? Colors.red : Colors.green,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${isExpense ? '-' : '+'}${settingsService.formatCurrency(displayAmount)}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isExpense ? Colors.red : Colors.green,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -750,13 +789,26 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(width: 12),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 14))),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 14),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
             ),
           ),
         ],
@@ -932,11 +984,15 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           children: [
             Icon(icon, color: color, size: 20),
             const SizedBox(width: 4),
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              ),
             ),
           ],
         ),
@@ -969,12 +1025,17 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              title,
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
+            const SizedBox(width: 8),
             Text(
               '$percentage%',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -994,17 +1055,30 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              settingsService.formatAmount(current),
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: color),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  settingsService.formatAmount(current),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: color),
+                ),
+              ),
             ),
-            Text(
-              target,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+            const SizedBox(width: 8),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  target,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+                ),
+              ),
             ),
           ],
         ),

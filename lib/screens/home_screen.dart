@@ -86,48 +86,58 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: <Widget>[
-          _buildBalanceCard(
-            context,
-            transactionService,
-            settingsService,
-            colorScheme,
-          ),
-          _buildSearchAndFilterBar(context, settingsService),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: () => transactionService.refresh(),
-              color: Theme.of(context).primaryColor,
-              backgroundColor: Colors.white,
-              child: transactionService.isLoading
-                  ? ListView.builder(
-                      itemCount: 5,
-                      itemBuilder: (context, index) =>
-                          const TransactionSkeleton(),
-                    )
-                  : transactions.isEmpty
-                  ? SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: SizedBox(
-                        height: MediaQuery.of(context).size.height * 0.6,
-                        child: EmptyState(
-                          title: _searchQuery.isNotEmpty
-                              ? 'No transactions found'
-                              : 'No transactions yet',
-                          message: _searchQuery.isNotEmpty
-                              ? 'Try searching with a different term'
-                              : 'Tap the + button to add your first transaction',
-                          icon: _searchQuery.isNotEmpty
-                              ? Icons.search_off_rounded
-                              : Icons.account_balance_wallet_rounded,
-                        ),
-                      ),
-                    )
-                  : TransactionList(transactions: transactions),
-            ),
-          ),
-        ],
+      body: RefreshIndicator(
+        onRefresh: () => transactionService.refresh(),
+        color: Theme.of(context).primaryColor,
+        backgroundColor: Colors.white,
+        child: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return <Widget>[
+              SliverToBoxAdapter(
+                child: _buildBalanceCard(
+                  context,
+                  transactionService,
+                  settingsService,
+                  colorScheme,
+                ),
+              ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickySearchBarDelegate(
+                  child: Container(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    child: _buildSearchAndFilterBar(context, settingsService),
+                  ),
+                  height: 72.0,
+                ),
+              ),
+            ];
+          },
+          body: transactionService.isLoading
+              ? ListView.builder(
+                  itemCount: 5,
+                  itemBuilder: (context, index) => const TransactionSkeleton(),
+                )
+              : transactions.isEmpty
+              ? SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: EmptyState(
+                      title: _searchQuery.isNotEmpty
+                          ? 'No transactions found'
+                          : 'No transactions yet',
+                      message: _searchQuery.isNotEmpty
+                          ? 'Try searching with a different term'
+                          : 'Tap the + button to add your first transaction',
+                      icon: _searchQuery.isNotEmpty
+                          ? Icons.search_off_rounded
+                          : Icons.account_balance_wallet_rounded,
+                    ),
+                  ),
+                )
+              : TransactionList(transactions: transactions),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -150,69 +160,83 @@ class _HomeScreenState extends State<HomeScreen> {
     final textTheme = Theme.of(context).textTheme;
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: GlassCard(
         color: colorScheme.primary,
         opacity: 0.9,
         blur: 20,
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Current Balance',
-                  style: textTheme.titleMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    'Current Balance',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.titleSmall?.copyWith(
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Icon(
                   Icons.account_balance_wallet_rounded,
                   color: Colors.white.withOpacity(0.5),
+                  size: 20,
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              settingsService.formatCurrency(transactionService.balance),
-              style: textTheme.displayMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                settingsService.formatCurrency(transactionService.balance),
+                style: textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildIncomeExpenseItem(
-                    'Income',
-                    transactionService.totalIncome,
-                    settingsService,
-                    const Color(0xFF64FFDA),
-                    Icons.arrow_circle_up_rounded,
-                    textTheme,
+                  Expanded(
+                    child: _buildIncomeExpenseItem(
+                      'Income',
+                      transactionService.totalIncome,
+                      settingsService,
+                      const Color(0xFF64FFDA),
+                      Icons.arrow_circle_up_rounded,
+                      textTheme,
+                    ),
                   ),
                   Container(
                     width: 1,
                     height: 40,
                     color: Colors.white.withOpacity(0.1),
                   ),
-                  _buildIncomeExpenseItem(
-                    'Expense',
-                    transactionService.totalExpense,
-                    settingsService,
-                    const Color(0xFFFF8A80),
-                    Icons.arrow_circle_down_rounded,
-                    textTheme,
+                  Expanded(
+                    child: _buildIncomeExpenseItem(
+                      'Expense',
+                      transactionService.totalExpense,
+                      settingsService,
+                      const Color(0xFFFF8A80),
+                      Icons.arrow_circle_down_rounded,
+                      textTheme,
+                    ),
                   ),
                 ],
               ),
@@ -236,22 +260,29 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              title,
-              style: textTheme.labelMedium?.copyWith(
-                color: Colors.white.withOpacity(0.8),
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.labelSmall?.copyWith(
+                  color: Colors.white.withOpacity(0.8),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
-        Text(
-          settingsService.formatCurrency(amount),
-          style: textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            settingsService.formatCurrency(amount),
+            style: textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ],
@@ -262,7 +293,85 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     SettingsService settingsService,
   ) {
-    final categories = settingsService.customCategories;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search transactions...',
+                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Theme.of(context).cardColor,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.tune_rounded, color: Colors.white),
+              onPressed: () => _showFilterBottomSheet(context, settingsService),
+              tooltip: 'Filters',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFilterBottomSheet(
+    BuildContext context,
+    SettingsService settingsService,
+  ) {
     final defaultCategories = [
       'Food',
       'Transport',
@@ -275,150 +384,161 @@ class _HomeScreenState extends State<HomeScreen> {
       'Investment',
       'General',
     ];
-    final allCategories = [...defaultCategories, ...categories];
+    final allCategories = [
+      ...defaultCategories,
+      ...settingsService.customCategories,
+    ].toSet().toList();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Container(
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search transactions...',
-                hintStyle: TextStyle(color: Colors.grey.shade500),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Theme.of(context).primaryColor,
-                ),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 20),
+    final payments = [
+      'Cash',
+      'Online',
+      'Card',
+      'Bank Transfer',
+      'UPI',
+      'Other',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filters',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      TextButton(
                         onPressed: () {
-                          _searchController.clear();
-                          setState(() {
-                            _searchQuery = '';
+                          setModalState(() {
+                            _selectedCategory = null;
+                            _selectedPaymentMethod = null;
                           });
+                          setState(() {});
+                          Navigator.pop(context);
                         },
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 36,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildFilterChip(
-                'All Categories',
-                _selectedCategory == null,
-                () => setState(() => _selectedCategory = null),
-              ),
-              ...allCategories.map(
-                (cat) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: _buildFilterChip(
-                    cat,
-                    _selectedCategory == cat,
-                    () => setState(() => _selectedCategory = cat),
+                        child: const Text('Clear All'),
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 36,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildFilterChip(
-                'All Payments',
-                _selectedPaymentMethod == null,
-                () => setState(() => _selectedPaymentMethod = null),
-              ),
-              ...[
-                'Cash',
-                'Online',
-                'Card',
-                'Bank Transfer',
-                'UPI',
-                'Other',
-              ].map(
-                (method) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: _buildFilterChip(
-                    method,
-                    _selectedPaymentMethod == method,
-                    () => setState(() => _selectedPaymentMethod = method),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Category',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: allCategories.map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedCategory = selected ? cat : null;
+                          });
+                          setState(() {});
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Payment Method',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: payments.map((method) {
+                      final isSelected = _selectedPaymentMethod == method;
+                      return ChoiceChip(
+                        label: Text(method),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedPaymentMethod = selected ? method : null;
+                          });
+                          setState(() {});
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Apply Filters',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16), // Bottom padding
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
+            );
+          },
+        );
+      },
     );
   }
+}
 
-  Widget _buildFilterChip(
-    String label,
-    bool isSelected,
-    VoidCallback onSelected,
+class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final double height;
+
+  _StickySearchBarDelegate({required this.child, required this.height});
+
+  @override
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
   ) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    return SizedBox.expand(child: child);
+  }
 
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (_) => onSelected(),
-      selectedColor: theme.primaryColor,
-      labelStyle: TextStyle(
-        color: isSelected
-            ? Colors.white
-            : (isDark ? Colors.white.withOpacity(0.7) : theme.primaryColor),
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 12,
-      ),
-      backgroundColor: isDark
-          ? Colors.white.withOpacity(0.05)
-          : theme.primaryColor.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: isSelected
-            ? BorderSide.none
-            : BorderSide(
-                color: isDark
-                    ? Colors.white.withOpacity(0.1)
-                    : Colors.transparent,
-              ),
-      ),
-      showCheckmark: false,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-    );
+  @override
+  bool shouldRebuild(covariant _StickySearchBarDelegate oldDelegate) {
+    return child != oldDelegate.child || height != oldDelegate.height;
   }
 }

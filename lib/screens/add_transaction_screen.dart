@@ -499,24 +499,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                         color: Theme.of(context).primaryColor,
                       ),
                       const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Transaction Date',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.7),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Transaction Date',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.7),
+                              ),
                             ),
-                          ),
-                          Text(
-                            DateFormat('EEEE, MMMM d, yyyy').format(_date),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                            Text(
+                              DateFormat('EEEE, MMMM d, yyyy').format(_date),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const Spacer(),
+                      const SizedBox(width: 8),
                       const Icon(
                         Icons.chevron_right_rounded,
                         color: Colors.grey,
@@ -582,11 +587,14 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               size: 18,
             ),
             const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey.shade600,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey.shade600,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
           ],

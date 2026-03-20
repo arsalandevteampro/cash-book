@@ -159,29 +159,35 @@ class _TransactionItem extends StatelessWidget {
                     children: [
                       Text(
                         transaction.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              transaction.category,
-                              style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                transaction.category,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context).primaryColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                           ),
@@ -192,11 +198,15 @@ class _TransactionItem extends StatelessWidget {
                             color: Colors.grey.shade500,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            _getPaymentMethodLabel(transaction),
-                            style: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 11,
+                          Flexible(
+                            child: Text(
+                              _getPaymentMethodLabel(transaction),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 11,
+                              ),
                             ),
                           ),
                         ],
@@ -205,25 +215,34 @@ class _TransactionItem extends StatelessWidget {
                   ),
                 ),
                 // Amount and Date
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${isIncome ? '+' : '-'} ${settingsService.formatCurrency(transaction.amount)}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w900,
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          '${isIncome ? '+' : '-'} ${settingsService.formatCurrency(transaction.amount)}',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                color: color,
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      DateFormat('MMM d').format(transaction.date),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade500,
-                        fontWeight: FontWeight.w500,
+                      const SizedBox(height: 4),
+                      Text(
+                        DateFormat('MMM d').format(transaction.date),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.grey.shade500,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
