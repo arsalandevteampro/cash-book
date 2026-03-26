@@ -25,13 +25,14 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       paymentMethod: fields[5] as PaymentMethod,
       category: fields[6] as String,
       customPaymentMethod: fields[8] as String?,
+      updatedAt: fields[9] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Transaction obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(9)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -47,7 +48,9 @@ class TransactionAdapter extends TypeAdapter<Transaction> {
       ..writeByte(6)
       ..write(obj.category)
       ..writeByte(8)
-      ..write(obj.customPaymentMethod);
+      ..write(obj.customPaymentMethod)
+      ..writeByte(9)
+      ..write(obj.updatedAt);
   }
 
   @override

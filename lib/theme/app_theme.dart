@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Professional Green palette (Reverted from Blue)
-  static const Color primarySeedColor = Color(0xFF00796B);
-  static const Color accentColor = Color(0xFF14B8A6); // Teal accent
-  static const Color backgroundColor = Color(0xFFF3F4F6); // Soft gray
+  // Professional Green/Teal Neomorphic palette
+  static const Color primarySeedColor = Color(0xFF006D5B); // Deep Teal
+  static const Color accentColor = Color(0xFF00D084); // Emerald accent
+  static const Color backgroundColor = Color(0xFFF8FAFC); // Off-white
   static const Color surfaceColor = Colors.white;
-  static const Color errorColor = Color(0xFFEF4444);
+  static const Color errorColor = Color(0xFFFF5F5F); // Rose-red
   static const Color successColor = Color(0xFF10B981);
 
   static final TextTheme _appTextTheme = TextTheme(

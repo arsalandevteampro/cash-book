@@ -10,6 +10,8 @@ class SettingsService with ChangeNotifier {
   List<String> _customCategories = [];
   List<String> _customPaymentMethods = [];
   List<Map<String, String>> _customCurrencies = [];
+  int _lastBackupTimestamp = 0;
+  String _backupFrequency = 'Never';
 
   String get currencySymbol => _currencySymbol;
   String get theme => _theme;
@@ -18,6 +20,8 @@ class SettingsService with ChangeNotifier {
   List<String> get customCategories => _customCategories;
   List<String> get customPaymentMethods => _customPaymentMethods;
   List<Map<String, String>> get customCurrencies => _customCurrencies;
+  int get lastBackupTimestamp => _lastBackupTimestamp;
+  String get backupFrequency => _backupFrequency;
 
   // Initialize with Hive database
   Future<void> initialize() async {
@@ -29,6 +33,8 @@ class SettingsService with ChangeNotifier {
       _customCategories = DatabaseService.getCustomCategories();
       _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
       _customCurrencies = DatabaseService.getCustomCurrencies();
+      _lastBackupTimestamp = DatabaseService.getSetting<int>('lastBackupTimestamp') ?? 0;
+      _backupFrequency = DatabaseService.getSetting<String>('backupFrequency') ?? 'Never';
 
       _setError(null);
       if (kDebugMode) {
@@ -82,6 +88,40 @@ class SettingsService with ChangeNotifier {
       _setError('Failed to update theme: $e');
       if (kDebugMode) {
         print('Error updating theme: $e');
+      }
+    }
+  }
+
+  Future<void> setLastBackupTimestamp(int timestamp) async {
+    try {
+      await DatabaseService.updateSetting('lastBackupTimestamp', timestamp);
+      _lastBackupTimestamp = timestamp;
+      _setError(null);
+      notifyListeners();
+      if (kDebugMode) {
+        print('✅ Last backup timestamp updated: $timestamp');
+      }
+    } catch (e) {
+      _setError('Failed to update backup timestamp: $e');
+      if (kDebugMode) {
+        print('Error updating backup timestamp: $e');
+      }
+    }
+  }
+
+  Future<void> setBackupFrequency(String frequency) async {
+    try {
+      await DatabaseService.updateSetting('backupFrequency', frequency);
+      _backupFrequency = frequency;
+      _setError(null);
+      notifyListeners();
+      if (kDebugMode) {
+        print('✅ Backup frequency updated: $frequency');
+      }
+    } catch (e) {
+      _setError('Failed to update backup frequency: $e');
+      if (kDebugMode) {
+        print('Error updating backup frequency: $e');
       }
     }
   }

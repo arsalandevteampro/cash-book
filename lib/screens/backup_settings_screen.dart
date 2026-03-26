@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/services/database_service.dart';
 import 'package:myapp/services/google_drive_service.dart';
+import 'package:myapp/services/settings_service.dart';
 
 class BackupSettingsScreen extends StatefulWidget {
   const BackupSettingsScreen({super.key});
@@ -12,9 +14,6 @@ class BackupSettingsScreen extends StatefulWidget {
 }
 
 class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
-  // Settings state
-  String _frequency = 'Daily';
-
   // Google Account
   GoogleSignInAccount? _signedInUser;
   bool _isSigningIn = false;
@@ -83,13 +82,19 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
     _simulateProgress();
 
     // Prepare real application data
-    final backupData = DatabaseService.exportData();
-    backupData['frequency'] = _frequency;
+    final backupData = await DatabaseService.exportDataAsync();
+    final settingsService = Provider.of<SettingsService>(context, listen: false);
+    backupData['frequency'] = settingsService.backupFrequency;
     backupData['timestamp'] = DateTime.now().toIso8601String();
 
     final result = await GoogleDriveService.backupToGoogleDrive(backupData);
 
     if (mounted) {
+      if (result.success) {
+        final settingsService = Provider.of<SettingsService>(context, listen: false);
+        await settingsService.setLastBackupTimestamp(DateTime.now().millisecondsSinceEpoch);
+      }
+
       setState(() {
         _isBackingUp = false;
         _backupProgress = 0.0;
@@ -127,9 +132,15 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
         if (result.data != null) {
           try {
             await DatabaseService.importData(result.data!);
-            setState(() {
-              _frequency = result.data!['frequency'] ?? _frequency;
-            });
+            
+            final settingsService = Provider.of<SettingsService>(context, listen: false);
+            final restoreTime = result.timestamp?.millisecondsSinceEpoch ?? DateTime.now().millisecondsSinceEpoch;
+            await settingsService.setLastBackupTimestamp(restoreTime);
+
+            if (result.data!['frequency'] != null) {
+              await settingsService.setBackupFrequency(result.data!['frequency']);
+            }
+
             _showSnack('Data restored successfully!', success: true);
           } catch (e) {
             _showError('Error importing data: $e');
@@ -199,7 +210,22 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Backup & Restore')),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          'Backup & Restore',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xFF006D5B)
+                : const Color(0xFF00D084),
+            fontSize: 20,
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -347,8 +373,16 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _runBackup,
-                  icon: const Icon(Icons.backup),
+                  icon: const Icon(Icons.cloud_upload_rounded),
                   label: const Text('Back Up Now'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00D084),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -368,7 +402,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
           ),
           ListTile(
             title: const Text('Auto Backup Schedule'),
-            subtitle: Text(_frequency),
+            subtitle: Text(Provider.of<SettingsService>(context).backupFrequency),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => _showFrequencySelectorDialog(),
           ),
@@ -410,26 +444,30 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
   }
 
   void _showFrequencySelectorDialog() {
-    final options = ['Never', 'Daily', 'Weekly', 'Monthly'];
+    final options = ['Never', 'Immediately', 'Daily', 'Weekly', 'Monthly'];
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Auto Backup Schedule'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: options
-              .map(
-                (opt) => RadioListTile<String>(
-                  title: Text(opt),
-                  value: opt,
-                  groupValue: _frequency,
-                  onChanged: (val) {
-                    setState(() => _frequency = val!);
-                    Navigator.pop(ctx);
-                  },
-                ),
-              )
-              .toList(),
+        content: Consumer<SettingsService>(
+          builder: (context, settingsService, child) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: options
+                  .map(
+                    (opt) => RadioListTile<String>(
+                      title: Text(opt),
+                      value: opt,
+                      groupValue: settingsService.backupFrequency,
+                      onChanged: (val) async {
+                        await settingsService.setBackupFrequency(val!);
+                        if (context.mounted) Navigator.pop(ctx);
+                      },
+                    ),
+                  )
+                  .toList(),
+            );
+          },
         ),
       ),
     );

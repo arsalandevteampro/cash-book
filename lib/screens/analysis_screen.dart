@@ -58,16 +58,34 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     final transactions = transactionService.transactions;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Financial Analysis'),
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          'Financial Analysis',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xFF006D5B)
+                : const Color(0xFF00D084),
+            fontSize: 20,
+          ),
+        ),
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          indicatorColor: const Color(0xFF00D084),
+          labelColor: Theme.of(context).brightness == Brightness.light 
+              ? const Color(0xFF006D5B)
+              : const Color(0xFF00D084),
+          unselectedLabelColor: Colors.grey,
           tabs: const [
-            Tab(icon: Icon(Icons.analytics), text: 'Overview'),
-            Tab(icon: Icon(Icons.pie_chart), text: 'Categories'),
-            Tab(icon: Icon(Icons.trending_up), text: 'Trends'),
-            Tab(icon: Icon(Icons.bar_chart), text: 'Progress'),
+            Tab(icon: Icon(Icons.analytics_rounded), text: 'Overview'),
+            Tab(icon: Icon(Icons.pie_chart_rounded), text: 'Categories'),
+            Tab(icon: Icon(Icons.trending_up_rounded), text: 'Trends'),
+            Tab(icon: Icon(Icons.bar_chart_rounded), text: 'Progress'),
           ],
         ),
       ),
@@ -191,7 +209,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 'Total Income',
                 analysis.totalIncome,
                 settingsService,
-                const Color(0xFF00796B),
+                const Color(0xFF00D084),
                 Icons.arrow_upward_rounded,
               ),
             ),
@@ -201,7 +219,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 'Total Expense',
                 analysis.totalExpense,
                 settingsService,
-                const Color(0xFFD32F2F),
+                const Color(0xFFFF5F5F),
                 Icons.arrow_downward_rounded,
               ),
             ),
@@ -254,9 +272,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -305,7 +321,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       value: analysis.totalIncome,
                       title:
                           'Income\n${settingsService.formatCurrency(analysis.totalIncome)}',
-                      color: Colors.green,
+                      color: const Color(0xFF00D084),
                       radius: 80,
                       titleStyle: const TextStyle(
                         fontSize: 12,
@@ -317,7 +333,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       value: analysis.totalExpense,
                       title:
                           'Expense\n${settingsService.formatCurrency(analysis.totalExpense)}',
-                      color: Colors.red,
+                      color: const Color(0xFFFF5F5F),
                       radius: 80,
                       titleStyle: const TextStyle(
                         fontSize: 12,
@@ -455,12 +471,12 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                         return FlSpot(entry.key.toDouble(), entry.value.income);
                       }).toList(),
                       isCurved: true,
-                      color: Colors.green,
+                      color: const Color(0xFF00D084),
                       barWidth: 3,
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.green.withOpacity(0.1),
+                        color: const Color(0xFF00D084).withOpacity(0.1),
                       ),
                     ),
                     LineChartBarData(
@@ -471,12 +487,12 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                         );
                       }).toList(),
                       isCurved: true,
-                      color: Colors.red,
+                      color: const Color(0xFFFF5F5F),
                       barWidth: 3,
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.red.withOpacity(0.1),
+                        color: const Color(0xFFFF5F5F).withOpacity(0.1),
                       ),
                     ),
                   ],
@@ -486,9 +502,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _buildLegendItem('Income', Colors.green)),
+                Expanded(child: _buildLegendItem('Income', const Color(0xFF00D084))),
                 const SizedBox(width: 16),
-                Expanded(child: _buildLegendItem('Expense', Colors.red)),
+                Expanded(child: _buildLegendItem('Expense', const Color(0xFFFF5F5F))),
               ],
             ),
           ],
@@ -547,11 +563,11 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 final isIncome = transaction.type == TransactionType.income;
                 return ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: (isIncome ? Colors.green : Colors.red)
+                    backgroundColor: (isIncome ? const Color(0xFF00D084) : const Color(0xFFFF5F5F))
                         .withOpacity(0.1),
                     child: Icon(
-                      isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: isIncome ? Colors.green : Colors.red,
+                      isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      color: isIncome ? const Color(0xFF00D084) : const Color(0xFFFF5F5F),
                     ),
                   ),
                   title: Text(
@@ -574,7 +590,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       child: Text(
                         '${isIncome ? '+' : '-'}${settingsService.formatCurrency(transaction.amount)}',
                         style: TextStyle(
-                          color: isIncome ? Colors.green : Colors.red,
+                          color: isIncome ? const Color(0xFF00D084) : const Color(0xFFFF5F5F),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -711,7 +727,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: isExpense ? Colors.red : Colors.green,
+                              color: isExpense ? const Color(0xFFFF5F5F) : const Color(0xFF00D084),
                             ),
                           ),
                         ],
@@ -756,20 +772,20 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             _buildInsightItem(
               'Average Daily Income',
               settingsService.formatCurrency(avgDailyIncome),
-              Icons.trending_up,
-              Colors.green,
+              Icons.trending_up_rounded,
+              const Color(0xFF00D084),
             ),
             _buildInsightItem(
               'Average Daily Expense',
               settingsService.formatCurrency(avgDailyExpense),
-              Icons.trending_down,
-              Colors.red,
+              Icons.trending_down_rounded,
+              const Color(0xFFFF5F5F),
             ),
             _buildInsightItem(
               'Savings Rate',
               '${((totalIncome - totalExpense) / totalIncome * 100).toStringAsFixed(1)}%',
-              Icons.account_balance_wallet,
-              Colors.blue,
+              Icons.account_balance_wallet_rounded,
+              const Color(0xFF006D5B),
             ),
           ],
         ),

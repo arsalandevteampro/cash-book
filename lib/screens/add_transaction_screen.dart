@@ -223,13 +223,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         settingsService.customPaymentMethods;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
         title: Text(
           widget.transaction == null ? 'New Transaction' : 'Edit Transaction',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xFF006D5B)
+                : const Color(0xFF00D084),
+            fontSize: 20,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -254,7 +261,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: _buildTypeButton(
                         'Expense',
                         TransactionType.expense,
-                        const Color(0xFFD32F2F),
+                        const Color(0xFFFF5F5F), // Rose-red
                         Icons.arrow_downward_rounded,
                       ),
                     ),
@@ -263,7 +270,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                       child: _buildTypeButton(
                         'Income',
                         TransactionType.income,
-                        const Color(0xFF00796B),
+                        const Color(0xFF00D084), // Emerald
                         Icons.arrow_upward_rounded,
                       ),
                     ),

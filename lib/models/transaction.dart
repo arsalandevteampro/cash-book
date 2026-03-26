@@ -52,6 +52,9 @@ class Transaction extends HiveObject {
   @HiveField(8)
   final String? customPaymentMethod;
 
+  @HiveField(9)
+  final int? updatedAt;
+
   Transaction({
     required this.id,
     required this.title,
@@ -61,6 +64,7 @@ class Transaction extends HiveObject {
     required this.paymentMethod,
     this.category = 'General',
     this.customPaymentMethod,
+    this.updatedAt,
   });
 
   // Convert Transaction to Map for compatibility
@@ -74,6 +78,7 @@ class Transaction extends HiveObject {
       'paymentMethod': paymentMethod.name,
       'category': category,
       'customPaymentMethod': customPaymentMethod,
+      'updatedAt': updatedAt,
     };
   }
 
@@ -94,6 +99,7 @@ class Transaction extends HiveObject {
       ),
       category: map['category'] ?? 'General',
       customPaymentMethod: map['customPaymentMethod'],
+      updatedAt: map['updatedAt'],
     );
   }
 
@@ -107,6 +113,7 @@ class Transaction extends HiveObject {
     PaymentMethod? paymentMethod,
     String? category,
     String? customPaymentMethod,
+    int? updatedAt,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -117,12 +124,13 @@ class Transaction extends HiveObject {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       category: category ?? this.category,
       customPaymentMethod: customPaymentMethod ?? this.customPaymentMethod,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
   @override
   String toString() {
-    return 'Transaction(id: $id, title: $title, amount: $amount, date: $date, type: $type, paymentMethod: $paymentMethod, category: $category, customPaymentMethod: $customPaymentMethod)';
+    return 'Transaction(id: $id, title: $title, amount: $amount, date: $date, type: $type, paymentMethod: $paymentMethod, category: $category, customPaymentMethod: $customPaymentMethod, updatedAt: $updatedAt)';
   }
 
   @override
@@ -136,7 +144,8 @@ class Transaction extends HiveObject {
         other.type == type &&
         other.paymentMethod == paymentMethod &&
         other.category == category &&
-        other.customPaymentMethod == customPaymentMethod;
+        other.customPaymentMethod == customPaymentMethod &&
+        other.updatedAt == updatedAt;
   }
 
   @override
@@ -148,6 +157,7 @@ class Transaction extends HiveObject {
         type.hashCode ^
         paymentMethod.hashCode ^
         category.hashCode ^
-        customPaymentMethod.hashCode;
+        customPaymentMethod.hashCode ^
+        updatedAt.hashCode;
   }
 }

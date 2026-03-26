@@ -62,7 +62,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Financial goals updated successfully!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF00D084),
           ),
         );
         Navigator.of(context).pop();
@@ -72,7 +72,7 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error updating goals: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFFFF5F5F),
           ),
         );
       }
@@ -91,9 +91,21 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
     final currencySymbol = settingsService.currencySymbol;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text('Set Financial Goals'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          'Financial Goals',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xFF006D5B)
+                : const Color(0xFF00D084),
+            fontSize: 20,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -130,8 +142,8 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
               // Monthly Income Target
               _buildGoalCard(
                 title: 'Monthly Income Target',
-                icon: Icons.trending_up,
-                color: Colors.green,
+                icon: Icons.trending_up_rounded,
+                color: const Color(0xFF00D084),
                 controller: _incomeController,
                 currencySymbol: currencySymbol,
                 description: 'Set your target monthly income',
@@ -142,8 +154,8 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
               // Monthly Expense Limit
               _buildGoalCard(
                 title: 'Monthly Expense Limit',
-                icon: Icons.trending_down,
-                color: Colors.red,
+                icon: Icons.trending_down_rounded,
+                color: const Color(0xFFFF5F5F),
                 controller: _expenseController,
                 currencySymbol: currencySymbol,
                 description: 'Set your maximum monthly spending limit',
@@ -154,8 +166,8 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
               // Savings Target
               _buildGoalCard(
                 title: 'Monthly Savings Target',
-                icon: Icons.account_balance_wallet,
-                color: Colors.blue,
+                icon: Icons.account_balance_wallet_rounded,
+                color: const Color(0xFF006D5B),
                 controller: _savingsController,
                 currencySymbol: currencySymbol,
                 description: 'Set your target monthly savings amount',

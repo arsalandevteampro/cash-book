@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
+import 'package:encrypt/encrypt.dart' as encrypt_pkg;
 
 /// HTTP client that injects Google OAuth2 headers
 class _GoogleAuthClient extends http.BaseClient {
@@ -34,6 +35,26 @@ class GoogleDriveService {
 
   static GoogleSignInAccount? _currentUser;
   static GoogleSignInAccount? get currentUser => _currentUser;
+
+  static const String _encryptionKey = 'CashBookSecureKey2024_0123456789';
+
+  static String _encryptData(String plainText) {
+    final key = encrypt_pkg.Key.fromUtf8(_encryptionKey);
+    final iv = encrypt_pkg.IV.fromSecureRandom(16);
+    final encrypter = encrypt_pkg.Encrypter(encrypt_pkg.AES(key));
+    final encrypted = encrypter.encrypt(plainText, iv: iv);
+    return '${iv.base64}:${encrypted.base64}';
+  }
+
+  static String _decryptData(String encryptedText) {
+    final parts = encryptedText.split(':');
+    if (parts.length != 2) return encryptedText;
+    final key = encrypt_pkg.Key.fromUtf8(_encryptionKey);
+    final iv = encrypt_pkg.IV.fromBase64(parts[0]);
+    final encrypter = encrypt_pkg.Encrypter(encrypt_pkg.AES(key));
+    final encrypted = encrypt_pkg.Encrypted.fromBase64(parts[1]);
+    return encrypter.decrypt(encrypted, iv: iv);
+  }
 
   /// Sign in with Google — shows account picker
   static Future<GoogleSignInAccount?> signIn() async {
@@ -122,10 +143,13 @@ class GoogleDriveService {
         );
       }
 
+      final jsonString = jsonEncode(data);
+      final encryptedString = _encryptData(jsonString);
+
       final payload = jsonEncode({
-        'version': 1,
+        'version': 2,
         'timestamp': DateTime.now().toIso8601String(),
-        'data': data,
+        'data': encryptedString,
       });
       final bytes = utf8.encode(payload);
       final stream = Stream.value(bytes);
@@ -214,11 +238,29 @@ class GoogleDriveService {
       }
 
       final jsonData = jsonDecode(utf8.decode(chunks)) as Map<String, dynamic>;
+      
+      final version = jsonData['version'] as int? ?? 1;
+      Map<String, dynamic>? dataMap;
+
+      if (version == 2) {
+        try {
+          final encryptedString = jsonData['data'] as String;
+          final decryptedString = _decryptData(encryptedString);
+          dataMap = jsonDecode(decryptedString) as Map<String, dynamic>?;
+        } catch (e) {
+          return RestoreResult(
+            success: false,
+            message: 'Failed to decrypt backup data. The data might be corrupted.',
+          );
+        }
+      } else {
+        dataMap = jsonData['data'] as Map<String, dynamic>?;
+      }
 
       return RestoreResult(
         success: true,
         message: 'Restore completed successfully!',
-        data: jsonData['data'] as Map<String, dynamic>?,
+        data: dataMap,
         timestamp: file.modifiedTime,
       );
     } catch (e) {

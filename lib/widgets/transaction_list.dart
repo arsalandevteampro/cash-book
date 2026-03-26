@@ -40,6 +40,7 @@ class TransactionList extends StatelessWidget {
               top: 8,
               bottom: 80,
             ), // Padding for FAB
+            physics: const AlwaysScrollableScrollPhysics(),
             itemCount: displayTransactions.length,
             itemBuilder: (ctx, index) {
               final tx = displayTransactions[index];
@@ -104,28 +105,41 @@ class _TransactionItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isIncome = transaction.type == TransactionType.income;
     final Color color = isIncome
-        ? const Color(0xFF00796B)
-        : const Color(0xFFD32F2F);
-    final IconData icon = isIncome ? Icons.add_rounded : Icons.remove_rounded;
+        ? const Color(0xFF00D084) // Emerald
+        : const Color(0xFFFF5F5F); // Rose-red
+    final IconData icon = isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
+
+    final lastBackupTime = settingsService.lastBackupTimestamp;
+    final txLastModified = transaction.updatedAt ?? int.tryParse(transaction.id) ?? 0;
+    final isBackedUp = lastBackupTime > 0 && txLastModified <= lastBackupTime;
+    final backupIcon = isBackedUp 
+        ? const Icon(Icons.cloud_done_rounded, size: 14, color: Colors.green)
+        : const Icon(Icons.cloud_upload_outlined, size: 14, color: Colors.orange);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color ?? Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Theme.of(context).brightness == Brightness.light 
+                ? Colors.black.withOpacity(0.06)
+                : Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
-        border: Border.all(color: Colors.grey.withOpacity(0.05)),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.grey.withOpacity(0.03)
+              : Colors.white.withOpacity(0.05),
+        ),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(16),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -138,20 +152,10 @@ class _TransactionItem extends StatelessWidget {
             _showDeleteConfirmation(context, transaction.id);
           },
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(left: 16, right: 24, top: 16, bottom: 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Icon with soft background
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 16),
                 // Title and secondary info
                 Expanded(
                   child: Column(
@@ -161,51 +165,60 @@ class _TransactionItem extends StatelessWidget {
                         transaction.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Flexible(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
+                                horizontal: 10,
+                                vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).primaryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                color: const Color(0xFF00D084).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 transaction.category,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context).primaryColor,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
+                                style: const TextStyle(
+                                  color: Color(0xFF006D5B),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            _getPaymentMethodIcon(transaction.paymentMethod),
-                            size: 12,
-                            color: Colors.grey.shade500,
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              _getPaymentMethodIcon(transaction.paymentMethod),
+                              size: 10,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 6),
                           Flexible(
                             child: Text(
                               _getPaymentMethodLabel(transaction),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: Colors.grey.shade500,
+                                color: Colors.grey.shade600,
                                 fontSize: 11,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),
@@ -214,31 +227,63 @@ class _TransactionItem extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(width: 16),
                 // Amount and Date
-                Flexible(
+                // Amount and Date
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.of(context).size.width * 0.35,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerRight,
-                        child: Text(
-                          '${isIncome ? '+' : '-'} ${settingsService.formatCurrency(transaction.amount)}',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: color,
-                                fontWeight: FontWeight.w900,
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '${settingsService.currencySymbol} ',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: color.withOpacity(0.7),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
+                              TextSpan(
+                                text: settingsService.formatCurrency(transaction.amount).replaceFirst(settingsService.currencySymbol, '').trim(),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: color,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        DateFormat('MMM d').format(transaction.date),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade500,
-                          fontWeight: FontWeight.w500,
+                      const SizedBox(height: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            backupIcon,
+                            const SizedBox(width: 4),
+                            Text(
+                              DateFormat('MMM d').format(transaction.date),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],

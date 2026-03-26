@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/settings_service.dart';
+import '../services/transaction_service.dart';
 import 'backup_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -15,6 +16,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsService = Provider.of<SettingsService>(context);
+    final transactionService = Provider.of<TransactionService>(context);
     final textTheme = Theme.of(context).textTheme;
 
     final List<Map<String, String>> defaultCurrencies = [
@@ -32,16 +34,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
       {'name': 'Malaysian Ringgit', 'symbol': 'RM'},
     ];
 
-    final allCurrencies = [
-      ...defaultCurrencies,
-      ...settingsService.customCurrencies,
-    ];
+    final Set<String> seenSymbols = {};
+    final allCurrencies = <Map<String, String>>[];
+    
+    for (var c in [...defaultCurrencies, ...settingsService.customCurrencies]) {
+      if (!seenSymbols.contains(c['symbol'])) {
+        seenSymbols.add(c['symbol']!);
+        allCurrencies.add(c);
+      }
+    }
+
     bool isCurrentSymbolInList = allCurrencies.any(
       (c) => c['symbol'] == settingsService.currencySymbol,
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        scrolledUnderElevation: 0,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          'Settings',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: Theme.of(context).brightness == Brightness.light 
+                ? const Color(0xFF006D5B)
+                : const Color(0xFF00D084),
+            fontSize: 20,
+          ),
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: <Widget>[
@@ -119,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ? settingsService.currencySymbol
               : currencies.first['symbol'],
           decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.currency_rupee),
+            prefixIcon: Icon(Icons.payments_outlined),
             border: OutlineInputBorder(),
           ),
           onChanged: (String? newSymbol) async {
@@ -165,9 +188,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: 'ADD_NEW',
               child: Row(
                 children: [
-                  Icon(Icons.add, size: 20, color: Colors.blue),
+                  Icon(Icons.add_rounded, size: 20, color: Color(0xFF00D084)),
                   SizedBox(width: 8),
-                  Text('Add Custom...', style: TextStyle(color: Colors.blue)),
+                  Text('Add Custom...', style: TextStyle(color: Color(0xFF00D084), fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -379,12 +402,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               Icons.cloud_done_rounded,
-              color: Theme.of(context).primaryColor,
+              color: Theme.of(context).colorScheme.primary,
               size: 20,
             ),
           ),
