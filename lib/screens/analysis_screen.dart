@@ -8,6 +8,8 @@ import '../services/settings_service.dart';
 import '../services/goals_service.dart';
 import '../models/transaction.dart';
 import 'goals_form_screen.dart';
+import '../core/constants.dart';
+import '../widgets/export_report_sheet.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -30,8 +32,8 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   DateTime? _customStartDate;
   DateTime? _customEndDate;
   DateTime? _singleDate;
-  String? _selectedCategory;
-  String? _selectedPaymentMethod;
+  List<String> _selectedCategories = [];
+  List<String> _selectedPaymentMethods = [];
 
   @override
   void initState() {
@@ -73,6 +75,18 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             fontSize: 20,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              Icons.ios_share_rounded,
+              color: Theme.of(context).brightness == Brightness.light
+                  ? const Color(0xFF006D5B)
+                  : const Color(0xFF00D084),
+            ),
+            tooltip: 'Export Report',
+            onPressed: () => showExportReportSheet(context),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -1202,22 +1216,85 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     );
   }
 
+  String _getCategoryChipLabel() {
+    if (_selectedCategories.isEmpty) return 'Category: All';
+    if (_selectedCategories.length <= 2) {
+      return 'Category: ${_selectedCategories.join(", ")}';
+    }
+    return 'Category: ${_selectedCategories.take(2).join(", ")} (+${_selectedCategories.length - 2})';
+  }
+
+  String _getPaymentMethodChipLabel() {
+    if (_selectedPaymentMethods.isEmpty) return 'Payment: All';
+    if (_selectedPaymentMethods.length <= 2) {
+      return 'Payment: ${_selectedPaymentMethods.join(", ")}';
+    }
+    return 'Payment: ${_selectedPaymentMethods.take(2).join(", ")} (+${_selectedPaymentMethods.length - 2})';
+  }
+
+  void _showMultiSelectDialog({
+    required String title,
+    required List<String> items,
+    required List<String> selectedItems,
+    required Function(List<String>) onConfirm,
+  }) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        List<String> tempSelected = List.from(selectedItems);
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Select $title'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: ListView(
+                  shrinkWrap: true,
+                  children: items.map((item) {
+                    final isChecked = tempSelected.contains(item);
+                    return CheckboxListTile(
+                      title: Text(item),
+                      value: isChecked,
+                      onChanged: (bool? checked) {
+                        setDialogState(() {
+                          if (checked == true) {
+                            tempSelected.add(item);
+                          } else {
+                            tempSelected.remove(item);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    onConfirm(tempSelected);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildExtraFilters(SettingsService settingsService) {
-    final categories = [
+    final categories = {
       'All',
+      ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
-      'Investment',
-      'Salary',
-      'Groceries',
-      'Restaurant',
-      'Fuel',
-      'Rent',
-      'Internet',
-      'Electricity',
-      'Pharmacy',
-      'Gift',
-      'General',
-    ];
+      ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
+    }.toList();
     final paymentMethods = [
       'All',
       ...PaymentMethod.values
@@ -1233,54 +1310,56 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         children: [
           const Icon(Icons.filter_list, size: 20, color: Colors.grey),
           const SizedBox(width: 8),
-          _buildFilterDropdown(
-            'Category',
-            _selectedCategory ?? 'All',
-            categories,
-            (val) =>
-                setState(() => _selectedCategory = val == 'All' ? null : val),
+          InputChip(
+            label: Text(_getCategoryChipLabel()),
+            selected: _selectedCategories.isNotEmpty,
+            showCheckmark: false,
+            onPressed: () {
+              _showMultiSelectDialog(
+                title: 'Categories',
+                items: categories.where((cat) => cat != 'All').toList(),
+                selectedItems: _selectedCategories,
+                onConfirm: (selected) {
+                  setState(() {
+                    _selectedCategories = selected;
+                  });
+                },
+              );
+            },
+            onDeleted: _selectedCategories.isNotEmpty
+                ? () {
+                    setState(() {
+                      _selectedCategories.clear();
+                    });
+                  }
+                : null,
           ),
           const SizedBox(width: 8),
-          _buildFilterDropdown(
-            'Payment',
-            _selectedPaymentMethod ?? 'All',
-            paymentMethods,
-            (val) => setState(
-              () => _selectedPaymentMethod = val == 'All' ? null : val,
-            ),
+          InputChip(
+            label: Text(_getPaymentMethodChipLabel()),
+            selected: _selectedPaymentMethods.isNotEmpty,
+            showCheckmark: false,
+            onPressed: () {
+              _showMultiSelectDialog(
+                title: 'Payment Methods',
+                items: paymentMethods.where((pm) => pm != 'All').toList(),
+                selectedItems: _selectedPaymentMethods,
+                onConfirm: (selected) {
+                  setState(() {
+                    _selectedPaymentMethods = selected;
+                  });
+                },
+              );
+            },
+            onDeleted: _selectedPaymentMethods.isNotEmpty
+                ? () {
+                    setState(() {
+                      _selectedPaymentMethods.clear();
+                    });
+                  }
+                : null,
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterDropdown(
-    String label,
-    String value,
-    List<String> items,
-    Function(String?) onChanged,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isDense: true,
-          style: Theme.of(
-            context,
-          ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold),
-          items: items.toSet().map((String item) {
-            // toSet to avoid duplicates in case custom name matches default
-            return DropdownMenuItem<String>(value: item, child: Text(item));
-          }).toList(),
-          onChanged: onChanged,
-        ),
       ),
     );
   }
@@ -1385,13 +1464,13 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               transaction.date.isAtSameMomentAs(endDate));
 
       final matchesCategory =
-          _selectedCategory == null ||
-          transaction.category == _selectedCategory;
+          _selectedCategories.isEmpty ||
+          _selectedCategories.contains(transaction.category);
       final matchesPayment =
-          _selectedPaymentMethod == null ||
-          (_getPaymentMethodLabel(transaction.paymentMethod) ==
-                  _selectedPaymentMethod ||
-              transaction.customPaymentMethod == _selectedPaymentMethod);
+          _selectedPaymentMethods.isEmpty ||
+          _selectedPaymentMethods.any((method) =>
+              _getPaymentMethodLabel(transaction.paymentMethod) == method ||
+              transaction.customPaymentMethod == method);
 
       return isInDateRange && matchesCategory && matchesPayment;
     }).toList();

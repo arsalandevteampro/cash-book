@@ -14,8 +14,14 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../widgets/ui_kit/glass_card.dart';
 import '../widgets/ui_kit/loading_skeleton.dart';
 import '../widgets/ui_kit/empty_state.dart';
+import '../widgets/export_report_sheet.dart';
 import '../services/database_service.dart';
 import '../services/google_drive_service.dart';
+import '../core/constants.dart';
+import '../utils/transaction_filters.dart';
+import 'package:intl/intl.dart';
+import '../widgets/rating_dialog.dart';
+import '../services/rating_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,8 +33,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String? _selectedCategory;
-  String? _selectedPaymentMethod;
+  final List<String> _selectedCategories = [];
+  final List<String> _selectedPaymentMethods = [];
+  TransactionType? _selectedType;
+  String? _selectedPeriod;
+  DateTime? _customStartDate;
+  DateTime? _customEndDate;
+  DateTime? _singleDate;
 
   late final StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isAutoBackingUp = false;
@@ -39,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TransactionService>(context, listen: false).addListener(_onTransactionChanged);
       _checkAutoBackup();
+      _checkRatingPrompt();
+      _trackTransactionsForRating();
     });
 
     _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
@@ -54,6 +67,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (freq == 'Immediately') {
       _checkAutoBackup();
     }
+    _trackTransactionsForRating();
+  }
+
+  void _trackTransactionsForRating() {
+    final count =
+        Provider.of<TransactionService>(context, listen: false).transactions.length;
+    RatingService.trackTransactionAdded(count);
+  }
+
+  Future<void> _checkRatingPrompt() async {
+    await maybeShowRatingPrompt(context);
   }
 
   Future<void> _checkAutoBackup() async {
@@ -124,25 +148,44 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchQuery.toLowerCase(),
       );
       final matchesCategory =
-          _selectedCategory == null || tx.category == _selectedCategory;
-
-      String txPaymentLabel = '';
-      if (tx.paymentMethod == PaymentMethod.other &&
-          tx.customPaymentMethod != null) {
-        txPaymentLabel = tx.customPaymentMethod!;
-      } else {
-        txPaymentLabel =
-            tx.paymentMethod.name[0].toUpperCase() +
-            tx.paymentMethod.name
-                .substring(1)
-                .replaceAll(RegExp(r'(?=[A-Z])'), ' ');
-      }
-
+          _selectedCategories.isEmpty || _selectedCategories.contains(tx.category);
       final matchesPayment =
-          _selectedPaymentMethod == null ||
-          txPaymentLabel == _selectedPaymentMethod;
-      return matchesSearch && matchesCategory && matchesPayment;
+          _selectedPaymentMethods.isEmpty ||
+          _selectedPaymentMethods.contains(TransactionFilters.paymentLabel(tx));
+      final matchesType = _selectedType == null || tx.type == _selectedType;
+      final matchesDate = TransactionFilters.matchesDate(
+        transactionDate: tx.date,
+        selectedPeriod: _selectedPeriod,
+        customStartDate: _customStartDate,
+        customEndDate: _customEndDate,
+        singleDate: _singleDate,
+      );
+
+      return matchesSearch &&
+          matchesCategory &&
+          matchesPayment &&
+          matchesType &&
+          matchesDate;
     }).toList();
+
+    final hasActiveFilters = _selectedCategories.isNotEmpty ||
+        _selectedPaymentMethods.isNotEmpty ||
+        _selectedType != null ||
+        TransactionFilters.hasActiveDateFilter(_selectedPeriod);
+
+    // Calculate filtered totals
+    final filteredBalance = transactions.fold(0.0, (sum, item) {
+      return sum +
+          (item.type == TransactionType.income ? item.amount : -item.amount);
+    });
+
+    final filteredIncome = transactions
+        .where((tx) => tx.type == TransactionType.income)
+        .fold(0.0, (sum, item) => sum + item.amount);
+
+    final filteredExpense = transactions
+        .where((tx) => tx.type == TransactionType.expense)
+        .fold(0.0, (sum, item) => sum + item.amount);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -175,6 +218,11 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Refresh',
           ),
           IconButton(
+            icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF006D5B)),
+            onPressed: () => showExportReportSheet(context),
+            tooltip: 'Export Report',
+          ),
+          IconButton(
             icon: const Icon(Icons.analytics_rounded, color: Color(0xFF006D5B)),
             onPressed: () {
               Navigator.of(context).push(
@@ -205,7 +253,9 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(
                 child: _buildBalanceCard(
                   context,
-                  transactionService,
+                  filteredBalance,
+                  filteredIncome,
+                  filteredExpense,
                   settingsService,
                   colorScheme,
                 ),
@@ -218,9 +268,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 delegate: _StickySearchBarDelegate(
                   child: Container(
                     color: Theme.of(context).scaffoldBackgroundColor,
-                    child: _buildSearchAndFilterBar(context, settingsService),
+                    child: _buildSearchAndFilterBar(
+                      context,
+                      settingsService,
+                      hasActiveFilters,
+                    ),
                   ),
-                  height: 80.0,
+                  height: hasActiveFilters
+                      ? 118.0
+                      : 80.0,
                 ),
               ),
             ];
@@ -236,13 +292,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: SizedBox(
                     height: MediaQuery.of(context).size.height * 0.6,
                     child: EmptyState(
-                      title: _searchQuery.isNotEmpty
+                      title: hasActiveFilters || _searchQuery.isNotEmpty
                           ? 'No transactions found'
                           : 'No transactions yet',
-                      message: _searchQuery.isNotEmpty
-                          ? 'Try searching with a different term'
+                      message: hasActiveFilters || _searchQuery.isNotEmpty
+                          ? 'Try changing your search or filters'
                           : 'Tap the + button to add your first transaction',
-                      icon: _searchQuery.isNotEmpty
+                      icon: hasActiveFilters || _searchQuery.isNotEmpty
                           ? Icons.search_off_rounded
                           : Icons.account_balance_wallet_rounded,
                     ),
@@ -269,7 +325,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBalanceCard(
     BuildContext context,
-    TransactionService transactionService,
+    double balance,
+    double totalIncome,
+    double totalExpense,
     SettingsService settingsService,
     ColorScheme colorScheme,
   ) {
@@ -322,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   TextSpan(
-                    text: settingsService.formatAmount(transactionService.balance),
+                    text: settingsService.formatAmount(balance),
                     style: const TextStyle(
                       fontSize: 48,
                       color: Colors.white,
@@ -345,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: _buildIncomeExpenseItem(
                       'INCOME',
-                      transactionService.totalIncome,
+                      totalIncome,
                       settingsService,
                       const Color(0xFF00D084),
                       Icons.arrow_downward_rounded,
@@ -362,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     child: _buildIncomeExpenseItem(
                       'EXPENSE',
-                      transactionService.totalExpense,
+                      totalExpense,
                       settingsService,
                       const Color(0xFFFF8A80),
                       Icons.arrow_upward_rounded,
@@ -433,10 +491,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchAndFilterBar(
     BuildContext context,
     SettingsService settingsService,
+    bool hasActiveFilters,
   ) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
+      child: Column(
+        children: [
+          Row(
         children: [
           Expanded(
             child: Container(
@@ -509,15 +570,123 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            child: IconButton(
-              icon: const Icon(Icons.tune_rounded, color: Colors.white),
-              onPressed: () => _showFilterBottomSheet(context, settingsService),
-              tooltip: 'Filters',
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.tune_rounded, color: Colors.white),
+                  onPressed: () =>
+                      _showFilterBottomSheet(context, settingsService),
+                  tooltip: 'Filters',
+                ),
+                if (hasActiveFilters)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFD54F),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],
       ),
+          if (hasActiveFilters) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 38,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                children: [
+                  if (TransactionFilters.hasActiveDateFilter(_selectedPeriod))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: InputChip(
+                        avatar: const Icon(Icons.calendar_today_rounded, size: 16),
+                        label: Text(_dateFilterLabel()),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedPeriod = null;
+                            _customStartDate = null;
+                            _customEndDate = null;
+                            _singleDate = null;
+                          });
+                        },
+                      ),
+                    ),
+                  if (_selectedType != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: InputChip(
+                        avatar: Icon(
+                          _selectedType == TransactionType.income
+                              ? Icons.arrow_downward_rounded
+                              : Icons.arrow_upward_rounded,
+                          size: 16,
+                          color: _selectedType == TransactionType.income
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                        label: Text(_selectedType == TransactionType.income ? 'Income' : 'Expense'),
+                        deleteIcon: const Icon(Icons.close, size: 16),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedType = null;
+                          });
+                        },
+                      ),
+                    ),
+                  ..._selectedCategories.map((cat) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: InputChip(
+                          label: Text(cat),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedCategories.remove(cat);
+                            });
+                          },
+                        ),
+                      )),
+                  ..._selectedPaymentMethods.map((method) => Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: InputChip(
+                          label: Text(method),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () {
+                            setState(() {
+                              _selectedPaymentMethods.remove(method);
+                            });
+                          },
+                        ),
+                      )),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  String _dateFilterLabel() {
+    if (_selectedPeriod == 'Single Date' && _singleDate != null) {
+      return DateFormat('MMM d, yyyy').format(_singleDate!);
+    }
+    if (_selectedPeriod == 'Custom' &&
+        _customStartDate != null &&
+        _customEndDate != null) {
+      return '${DateFormat('MMM d').format(_customStartDate!)} - ${DateFormat('MMM d, yyyy').format(_customEndDate!)}';
+    }
+    return _selectedPeriod ?? 'All Time';
   }
 
   Widget _buildBooksBar(
@@ -619,21 +788,10 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     SettingsService settingsService,
   ) {
-    final defaultCategories = [
-      'Food',
-      'Transport',
-      'Entertainment',
-      'Shopping',
-      'Bills',
-      'Health',
-      'Education',
-      'Salary',
-      'Investment',
-      'General',
-    ];
     final allCategories = {
-      ...defaultCategories,
+      ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
+      ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
     }.toList();
 
     final payments = [
@@ -654,7 +812,8 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
-            return Container(
+            return SingleChildScrollView(
+              child: Container(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -672,13 +831,154 @@ class _HomeScreenState extends State<HomeScreen> {
                       TextButton(
                         onPressed: () {
                           setModalState(() {
-                            _selectedCategory = null;
-                            _selectedPaymentMethod = null;
+                            _selectedCategories.clear();
+                            _selectedPaymentMethods.clear();
+                            _selectedType = null;
+                            _selectedPeriod = null;
+                            _customStartDate = null;
+                            _customEndDate = null;
+                            _singleDate = null;
                           });
                           setState(() {});
                           Navigator.pop(context);
                         },
                         child: const Text('Clear All'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Date',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('All Time'),
+                        selected:
+                            _selectedPeriod == null ||
+                            _selectedPeriod == 'All Time',
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedPeriod = selected ? 'All Time' : null;
+                            _customStartDate = null;
+                            _customEndDate = null;
+                            _singleDate = null;
+                          });
+                          setState(() {});
+                        },
+                      ),
+                      ...TransactionFilters.presetPeriods.map((period) {
+                        return ChoiceChip(
+                          label: Text(period),
+                          selected: _selectedPeriod == period,
+                          onSelected: (selected) {
+                            setModalState(() {
+                              _selectedPeriod = selected ? period : null;
+                              _customStartDate = null;
+                              _customEndDate = null;
+                              _singleDate = null;
+                            });
+                            setState(() {});
+                          },
+                        );
+                      }),
+                      ChoiceChip(
+                        label: Text(
+                          _singleDate != null
+                              ? DateFormat('MMM d').format(_singleDate!)
+                              : 'Pick Date',
+                        ),
+                        selected: _selectedPeriod == 'Single Date',
+                        onSelected: (selected) async {
+                          if (!selected) return;
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _singleDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              _selectedPeriod = 'Single Date';
+                              _singleDate = picked;
+                              _customStartDate = null;
+                              _customEndDate = null;
+                            });
+                            setState(() {});
+                          }
+                        },
+                      ),
+                      ChoiceChip(
+                        label: Text(
+                          _customStartDate != null && _customEndDate != null
+                              ? '${DateFormat('MMM d').format(_customStartDate!)} - ${DateFormat('MMM d').format(_customEndDate!)}'
+                              : 'Custom Range',
+                        ),
+                        selected: _selectedPeriod == 'Custom',
+                        onSelected: (selected) async {
+                          if (!selected) return;
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                            initialDateRange:
+                                _customStartDate != null &&
+                                    _customEndDate != null
+                                ? DateTimeRange(
+                                    start: _customStartDate!,
+                                    end: _customEndDate!,
+                                  )
+                                : null,
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              _selectedPeriod = 'Custom';
+                              _customStartDate = picked.start;
+                              _customEndDate = picked.end;
+                              _singleDate = null;
+                            });
+                            setState(() {});
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Transaction Type',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Income'),
+                        selected: _selectedType == TransactionType.income,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedType = selected ? TransactionType.income : null;
+                          });
+                          setState(() {});
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Expense'),
+                        selected: _selectedType == TransactionType.expense,
+                        onSelected: (selected) {
+                          setModalState(() {
+                            _selectedType = selected ? TransactionType.expense : null;
+                          });
+                          setState(() {});
+                        },
                       ),
                     ],
                   ),
@@ -694,13 +994,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 8,
                     runSpacing: 4,
                     children: allCategories.map((cat) {
-                      final isSelected = _selectedCategory == cat;
-                      return ChoiceChip(
+                      final isSelected = _selectedCategories.contains(cat);
+                      return FilterChip(
                         label: Text(cat),
                         selected: isSelected,
                         onSelected: (selected) {
                           setModalState(() {
-                            _selectedCategory = selected ? cat : null;
+                            if (selected) {
+                              _selectedCategories.add(cat);
+                            } else {
+                              _selectedCategories.remove(cat);
+                            }
                           });
                           setState(() {});
                         },
@@ -719,13 +1023,17 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 8,
                     runSpacing: 4,
                     children: payments.map((method) {
-                      final isSelected = _selectedPaymentMethod == method;
-                      return ChoiceChip(
+                      final isSelected = _selectedPaymentMethods.contains(method);
+                      return FilterChip(
                         label: Text(method),
                         selected: isSelected,
                         onSelected: (selected) {
                           setModalState(() {
-                            _selectedPaymentMethod = selected ? method : null;
+                            if (selected) {
+                              _selectedPaymentMethods.add(method);
+                            } else {
+                              _selectedPaymentMethods.remove(method);
+                            }
                           });
                           setState(() {});
                         },
@@ -755,6 +1063,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 16), // Bottom padding
                 ],
               ),
+            ),
             );
           },
         );

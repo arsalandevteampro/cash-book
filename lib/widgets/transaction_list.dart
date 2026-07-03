@@ -41,9 +41,27 @@ class TransactionList extends StatelessWidget {
               bottom: 80,
             ), // Padding for FAB
             physics: const AlwaysScrollableScrollPhysics(),
-            itemCount: displayTransactions.length,
+            itemCount: displayTransactions.length + 1,
             itemBuilder: (ctx, index) {
-              final tx = displayTransactions[index];
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Transactions (${displayTransactions.length})',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Colors.grey.shade400,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              final tx = displayTransactions[index - 1];
               return _TransactionItem(
                 transaction: tx,
                 settingsService: settingsService,

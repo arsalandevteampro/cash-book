@@ -1,18 +1,40 @@
 {
   "project_info": {
     "project_number": "443901648986",
+    "firebase_url": "https://devteampro-default-rtdb.firebaseio.com",
     "project_id": "devteampro",
     "storage_bucket": "devteampro.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:443901648986:android:25d1374a995b315b49f863",
+        "mobilesdk_app_id": "1:443901648986:android:a0bfb0023dbfa2da49f863",
         "android_client_info": {
-          "package_name": "com.masjidsyedazahra"
+          "package_name": "com.arsalandev.cashbook"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "443901648986-1kck7e6lv4lj9pf6vfh2krffvprlo4c2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arsalandev.cashbook",
+            "certificate_hash": "4046ea17c5690e00ef622cc2556569f00c07f1ec"
+          }
+        },
+        {
+          "client_id": "443901648986-jb331o7nhjnhiuqhrgbe7h5tphja1dhq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.arsalandev.cashbook",
+            "certificate_hash": "5c285b4b3a62dd5e4847ca917fd7d8688e0d6103"
+          }
+        },
+        {
+          "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
@@ -20,7 +42,99 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "443901648986-5f05u32fmesljt62ig04v4qv6uvicqgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.masjidsyedazahra"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443901648986:android:6eb319847c73a99c49f863",
+        "android_client_info": {
+          "package_name": "com.firbaseconnect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "443901648986-h03m7e5ih5jdo9j2nmhl5mdt9ul8vrc4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.firbaseconnect",
+            "certificate_hash": "4046ea17c5690e00ef622cc2556569f00c07f1ec"
+          }
+        },
+        {
+          "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "443901648986-5f05u32fmesljt62ig04v4qv6uvicqgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.masjidsyedazahra"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443901648986:android:25d1374a995b315b49f863",
+        "android_client_info": {
+          "package_name": "com.masjidsyedazahra"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "443901648986-5f05u32fmesljt62ig04v4qv6uvicqgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.masjidsyedazahra"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +145,12 @@
           "package_name": "com.myfirebaseapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
@@ -39,26 +158,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:443901648986:android:ad23eb5df0c6a4d349f863",
-        "android_client_info": {
-          "package_name": "come.cashbook"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDuGt4ejv6fjw8Ky8akmdchEL-63cqlKQo"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "443901648986-hg4phnd05nsupe51328v9ikhh4lcsoi1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "443901648986-5f05u32fmesljt62ig04v4qv6uvicqgh.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.masjidsyedazahra"
+              }
+            }
+          ]
         }
       }
     }

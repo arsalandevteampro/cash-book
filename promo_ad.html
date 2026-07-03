@@ -1,0 +1,2034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cash Book - Track Income & Expenses</title>
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #030808;
+      --primary: #00D084;
+      --primary-dark: #006D5B;
+      --expense: #FF5F5F;
+      --text-main: #FFFFFF;
+      --text-muted: #8E9A9B;
+      --glass-border: rgba(0, 208, 132, 0.15);
+      --font-outfit: 'Outfit', sans-serif;
+      --font-inter: 'Inter', sans-serif;
+      
+      /* Real App Colors matching screenshots */
+      --app-bg: #F4F7F6;
+      --app-teal-dark: #006D5B;
+      --app-teal-light: #00B570;
+      --app-expense-red: #FF5C5C;
+      --app-text-dark: #0A2B27;
+      --app-text-muted: #647B78;
+      --app-card-bg: #FFFFFF;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 109, 91, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 208, 132, 0.1) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: var(--font-inter);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Video Frame Container - fixed 16:9 for consistent video rendering */
+    .video-viewport {
+      width: 1280px;
+      height: 720px;
+      position: relative;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #071f20 0%, #030808 100%);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Grid Overlay for high-tech look */
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(rgba(0, 208, 132, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 208, 132, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Scene Base */
+    .scene {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+    }
+
+    .scene.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    /* Kinetic Typography Styles */
+    .promo-title {
+      font-family: var(--font-outfit);
+      font-size: 50px;
+      font-weight: 900;
+      line-height: 1.1;
+      text-align: center;
+      margin-bottom: 20px;
+      background: linear-gradient(135deg, #FFFFFF 0%, #A3B8B9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      transform: translateY(30px);
+      opacity: 0;
+      transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;
+    }
+
+    .scene.active .promo-title {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .promo-subtitle {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-muted);
+      text-align: center;
+      max-width: 650px;
+      line-height: 1.6;
+      transform: translateY(30px);
+      opacity: 0;
+      transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s;
+    }
+
+    .scene.active .promo-subtitle {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Highlight span */
+    .highlight-green {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(0, 208, 132, 0.2);
+    }
+
+    .highlight-red {
+      background: linear-gradient(135deg, var(--expense) 0%, #D04040 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Floating Particles/Elements in Scene 1 */
+    .floating-elements {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .floating-item {
+      position: absolute;
+      background: rgba(255, 95, 95, 0.08);
+      border: 1px solid rgba(255, 95, 95, 0.15);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 14px;
+      color: #FF8F8F;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      animation: float-around 6s ease-in-out infinite alternate;
+    }
+
+    @keyframes float-around {
+      0% { transform: translateY(0) rotate(0deg); }
+      100% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    /* Phone Mockup */
+    .phone-mockup {
+      width: 330px;
+      height: 620px;
+      background: #081112;
+      border: 12px solid #162426;
+      border-radius: 44px;
+      position: relative;
+      box-shadow: 
+        0 25px 50px -12px rgba(0, 0, 0, 0.7),
+        0 0 40px rgba(0, 208, 132, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100px) rotate(-3deg);
+      opacity: 0;
+      transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 5;
+    }
+
+    .scene.active .phone-mockup {
+      transform: translateY(0) rotate(0deg);
+      opacity: 1;
+    }
+
+    /* Phone Speaker Notch */
+    .phone-notch {
+      width: 140px;
+      height: 20px;
+      background: #162426;
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      border-bottom-left-radius: 15px;
+      border-bottom-right-radius: 15px;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .phone-notch-camera {
+      width: 8px;
+      height: 8px;
+      background: #0d1618;
+      border-radius: 50%;
+    }
+
+    /* Phone Screen Content matching Light Mode Cash Book */
+    .phone-screen {
+      flex: 1;
+      width: 100%;
+      background: var(--app-bg);
+      padding: 24px 14px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      color: var(--app-text-dark);
+      font-family: var(--font-inter);
+    }
+
+    /* Real-time sync visual effects */
+    .sync-wave {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      border: 2px solid var(--app-teal-light);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* App UI Header matching screenshot 1 */
+    .app-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      margin-top: 6px;
+    }
+
+    .app-title-dropdown {
+      font-family: var(--font-inter);
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--app-teal-dark);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+    }
+
+    .app-header-icons {
+      display: flex;
+      gap: 14px;
+      color: var(--app-teal-dark);
+    }
+
+    .app-header-icons svg {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    /* Summary Card (Green Gradient Current Balance Card) matching screenshot 1 */
+    .balance-card {
+      background: linear-gradient(135deg, #00B570 0%, #006D5B 100%);
+      border-radius: 22px;
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 24px rgba(0, 109, 91, 0.25);
+    }
+
+    .balance-label {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 2px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .balance-amount {
+      font-family: var(--font-inter);
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      text-align: center;
+      letter-spacing: -0.5px;
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .balance-currency {
+      font-size: 16px;
+      font-weight: 600;
+      opacity: 0.9;
+    }
+
+    .balance-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .mini-card {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(5px);
+      border-radius: 12px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .mini-card-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .mini-card-icon.income {
+      background: rgba(255, 255, 255, 0.2);
+      color: #79FAD2;
+    }
+
+    .mini-card-icon.expense {
+      background: rgba(255, 255, 255, 0.2);
+      color: #FF9B9B;
+    }
+
+    .mini-card-data {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .mini-card-label {
+      font-size: 8px;
+      color: rgba(255, 255, 255, 0.85);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .mini-card-val {
+      font-size: 10px;
+      font-weight: 700;
+      color: #FFFFFF;
+      white-space: nowrap;
+    }
+
+    /* Books & Filter Section matching screenshot 1 */
+    .books-section {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--app-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .new-book-btn {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--app-teal-dark);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .pills-container {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .pill {
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pill.active {
+      background: var(--app-teal-dark);
+      color: #FFFFFF;
+    }
+
+    .pill.inactive {
+      background: #FFFFFF;
+      color: var(--app-text-muted);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    /* Search & Filter bar matching screenshot 1 */
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .search-box {
+      flex: 1;
+      background: #FFFFFF;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      border-radius: 14px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--app-text-muted);
+      font-size: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.01);
+    }
+
+    .filter-btn-square {
+      width: 36px;
+      height: 36px;
+      background: var(--app-teal-dark);
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #FFFFFF;
+      cursor: pointer;
+    }
+
+    /* Transaction List Section matching screenshot 1 */
+    .transaction-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      overflow-y: hidden;
+      padding-bottom: 60px;
+    }
+
+    .tx-item {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.02);
+      border: 1px solid rgba(0, 0, 0, 0.01);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .tx-item.visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .tx-left {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tx-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--app-text-dark);
+    }
+
+    .tx-tags {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .tag-pill {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .tag-pill.category-vehicle {
+      background: #EAF7F4;
+      color: var(--app-teal-light);
+    }
+
+    .tag-pill.category-salary {
+      background: #EAF7F4;
+      color: var(--app-teal-light);
+    }
+
+    .tag-pill.payment-cash {
+      background: #F1F4F4;
+      color: var(--app-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .tx-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+
+    .tx-amount-val {
+      font-family: var(--font-inter);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .tx-amount-val.val-income {
+      color: var(--app-teal-light);
+    }
+
+    .tx-amount-val.val-expense {
+      color: var(--app-expense-red);
+    }
+
+    .tx-sync-date {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 9px;
+      color: var(--app-text-muted);
+    }
+
+    .orange-cloud {
+      color: #FFA726;
+      width: 11px;
+      height: 11px;
+    }
+
+    /* Centered Floating Action Button matching screenshot 1 */
+    .fab-btn-center {
+      width: 52px;
+      height: 52px;
+      background: var(--app-teal-light);
+      border-radius: 50%;
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #FFFFFF;
+      font-size: 24px;
+      font-weight: 500;
+      box-shadow: 0 8px 20px rgba(0, 181, 112, 0.3);
+      cursor: pointer;
+      z-index: 15;
+    }
+
+    .fab-pulse {
+      animation: fab-glow-center 2s infinite;
+    }
+
+    @keyframes fab-glow-center {
+      0% { box-shadow: 0 0 0 0 rgba(0, 181, 112, 0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(0, 181, 112, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 181, 112, 0); }
+    }
+
+    /* Simulation Click Pointer */
+    .click-cursor {
+      width: 24px;
+      height: 24px;
+      background: rgba(0, 109, 91, 0.3);
+      border: 2px solid var(--app-teal-dark);
+      border-radius: 50%;
+      position: absolute;
+      pointer-events: none;
+      z-index: 100;
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .click-cursor.click-active {
+      transform: translate(-50%, -50%) scale(0.85);
+      background: var(--app-teal-light);
+      border-color: var(--app-teal-light);
+    }
+
+    /* Form pop sheet matching screenshot 2 */
+    .form-sheet {
+      position: absolute;
+      bottom: -100%;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--app-bg);
+      z-index: 18;
+      transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 14px 16px 14px;
+    }
+
+    .form-sheet.open {
+      transform: translateY(-100%);
+    }
+
+    .form-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      color: var(--app-teal-dark);
+    }
+
+    .form-header h2 {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .form-back-arrow {
+      cursor: pointer;
+      color: var(--app-teal-dark);
+    }
+
+    .toggle-container {
+      display: flex;
+      background: #E5EBEA;
+      border-radius: 12px;
+      padding: 3px;
+      margin-bottom: 20px;
+    }
+
+    .toggle-btn {
+      flex: 1;
+      padding: 8px 12px;
+      text-align: center;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .toggle-btn.expense-active {
+      background: var(--app-expense-red);
+      color: #FFFFFF;
+    }
+
+    .toggle-btn.income-active {
+      background: var(--app-teal-light);
+      color: #FFFFFF;
+    }
+
+    .toggle-btn.inactive {
+      background: transparent;
+      color: var(--app-text-muted);
+    }
+
+    .form-group-box {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .form-group-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--app-teal-dark);
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .form-field-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      padding-bottom: 10px;
+    }
+
+    .form-field-row:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .field-icon {
+      color: var(--app-teal-dark);
+      opacity: 0.8;
+    }
+
+    .field-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .field-lbl {
+      font-size: 9px;
+      color: var(--app-text-muted);
+      margin-bottom: 2px;
+    }
+
+    .field-input-mock {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--app-text-muted);
+      min-height: 18px;
+    }
+
+    .field-input-mock.has-val {
+      color: var(--app-text-dark);
+      font-weight: 700;
+    }
+
+    .dropdown-arrow-mini {
+      color: var(--app-text-muted);
+      opacity: 0.6;
+    }
+
+    .form-save-btn {
+      width: 100%;
+      background: var(--app-teal-dark);
+      color: #FFFFFF;
+      border: none;
+      padding: 12px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+      margin-top: auto;
+      box-shadow: 0 6px 14px rgba(0, 109, 91, 0.2);
+    }
+
+    /* Screen 3 inside Phone: Trends & Financial Analysis Tab matching screenshot 4 */
+    .chart-screen {
+      position: absolute;
+      top: 24px;
+      left: 100%;
+      width: 100%;
+      height: calc(100% - 24px);
+      background: var(--app-bg);
+      padding: 14px;
+      transition: left 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 12;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-screen.active {
+      left: 0;
+    }
+
+    .app-bar-trends {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      color: var(--app-teal-dark);
+    }
+
+    .trends-tab-bar {
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      margin-bottom: 12px;
+    }
+
+    .trends-tab-item {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--app-text-muted);
+      padding: 6px 4px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .trends-tab-item.active {
+      color: var(--app-teal-light);
+      font-weight: 700;
+    }
+
+    .trends-tab-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--app-teal-light);
+    }
+
+    .trends-periods {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .period-btn {
+      flex: 1;
+      padding: 5px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-align: center;
+      background: #FFFFFF;
+      color: var(--app-text-muted);
+      border: 1px solid rgba(0,0,0,0.03);
+      cursor: pointer;
+    }
+
+    .period-btn.active {
+      background: #D5ECE8;
+      color: var(--app-teal-dark);
+      border-color: rgba(0, 109, 91, 0.1);
+    }
+
+    .trends-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .filter-dropdown-mock {
+      flex: 1;
+      background: #FFFFFF;
+      border-radius: 10px;
+      padding: 5px 8px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--app-text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(0,0,0,0.02);
+    }
+
+    .card-trends {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+      margin-bottom: 14px;
+    }
+
+    .trends-card-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--app-text-dark);
+      margin-bottom: 12px;
+    }
+
+    /* Wavy curved lines in Trends card matching screenshot 4 */
+    .trends-svg-container {
+      width: 100%;
+      height: 140px;
+      position: relative;
+      margin-bottom: 10px;
+    }
+
+    .trends-svg-grid {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      stroke: rgba(0,0,0,0.05);
+      stroke-width: 1;
+      stroke-dasharray: 2,2;
+    }
+
+    .chart-wavy-path {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .chart-fill-gradient {
+      stroke: none;
+      opacity: 0.1;
+    }
+
+    .chart-dots circle {
+      stroke: #FFFFFF;
+      stroke-width: 1.5;
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      margin-top: 8px;
+      font-size: 9px;
+      font-weight: 600;
+    }
+
+    .legend-box {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    /* Goals progress Screen inside Phone matching screenshot 5 */
+    .goals-screen {
+      position: absolute;
+      top: 24px;
+      left: 100%;
+      width: 100%;
+      height: calc(100% - 24px);
+      background: var(--app-bg);
+      padding: 14px;
+      transition: left 0.6s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 14;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .goals-screen.active {
+      left: 0;
+    }
+
+    .goal-card-box {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+      margin-bottom: 14px;
+    }
+
+    .goal-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .goal-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .goal-lbl-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--app-text-dark);
+    }
+
+    .goal-val-pct {
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .goal-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: #EFF2F2;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .goal-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0;
+      transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .goal-scale-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--app-text-muted);
+      font-weight: 600;
+    }
+
+    .metrics-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.01);
+    }
+
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      font-size: 11px;
+    }
+
+    .metric-row:last-child {
+      border-bottom: none;
+    }
+
+    .metric-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      color: var(--app-text-dark);
+    }
+
+    .metric-val {
+      font-weight: 800;
+      color: #0081C4;
+    }
+
+    /* Outro CTA Showcase elements */
+    .sync-showcase {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .cloud-node {
+      position: absolute;
+      top: 10%;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, rgba(0, 208, 132, 0.2) 0%, transparent 70%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      z-index: 10;
+      animation: pulse-slow 3s infinite alternate;
+    }
+
+    .cloud-icon {
+      font-size: 40px;
+      color: var(--primary);
+      filter: drop-shadow(0 0 10px var(--primary));
+    }
+
+    @keyframes pulse-slow {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    .device-container {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      z-index: 5;
+      transform: scale(0.9);
+    }
+
+    .tablet-mockup {
+      width: 380px;
+      height: 270px;
+      background: #081112;
+      border: 8px solid #162426;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      transform: translateY(40px);
+      opacity: 0;
+      transition: all 0.8s ease 0.4s;
+    }
+
+    .scene.active .tablet-mockup {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .tablet-screen {
+      flex: 1;
+      background: var(--app-bg);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      color: var(--app-text-dark);
+      font-family: var(--font-inter);
+    }
+
+    .download-badges {
+      display: flex;
+      gap: 16px;
+      margin-top: 30px;
+      transform: translateY(30px);
+      opacity: 0;
+      transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.6s;
+    }
+
+    .scene.active .download-badges {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .badge-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: var(--font-inter);
+    }
+
+    .badge-btn:hover {
+      background: rgba(0, 208, 132, 0.1);
+      border-color: var(--primary);
+    }
+
+    .badge-sub {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-main {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .glow-circle {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0, 208, 132, 0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- The Main Fixed 16:9 Video Canvas -->
+  <div class="video-viewport" id="videoCanvas">
+    <div class="grid-overlay"></div>
+    
+    <!-- Virtual Finger Cursor -->
+    <div class="click-cursor" id="virtualCursor"></div>
+
+    <!-- ================= SCENE 1: THE PROBLEM ================= -->
+    <div class="scene active" id="scene1">
+      <div class="floating-elements">
+        <div class="floating-item" style="top: 20%; left: 15%; animation-delay: 0s;">Where did my salary go? 💸</div>
+        <div class="floating-item" style="top: 65%; left: 10%; animation-delay: 1s;">Bike maintenance due! 🏍️</div>
+        <div class="floating-item" style="top: 15%; right: 15%; animation-delay: 0.5s;">Untracked expenses? 📉</div>
+        <div class="floating-item" style="top: 70%; right: 12%; animation-delay: 1.5s;">No savings this month? ❌</div>
+      </div>
+      
+      <h1 class="promo-title">Tired of Losing Track of <br><span class="highlight-red">Your Hard-Earned Money?</span></h1>
+      <p class="promo-subtitle">Managing personal finance shouldn't feel like a chore. Messy accounts, forgotten bills, and zero insights are holding you back.</p>
+    </div>
+
+    <!-- ================= SCENE 2: THE INTRODUCTION ================= -->
+    <div class="scene" id="scene2">
+      <div class="glow-circle" style="top: 10%; left: 30%"></div>
+      <h1 class="promo-title" style="margin-bottom: 10px;">Meet <span class="highlight-green">Cash Book</span></h1>
+      <p class="promo-subtitle" style="margin-bottom: 30px;">Your ultimate elegant personal finance companion. Fast, modern, and effortless.</p>
+
+      <div class="phone-mockup" id="phoneMockup">
+        <!-- Notch -->
+        <div class="phone-notch"><div class="phone-notch-camera"></div></div>
+        
+        <!-- Screen -->
+        <div class="phone-screen" id="phoneScreen">
+          
+          <!-- Sync Notification Wave -->
+          <div class="sync-wave" id="syncWave"></div>
+
+          <!-- App Header -->
+          <div class="app-header">
+            <div class="app-title-dropdown">
+              My Book
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+            <div class="app-header-icons">
+              <!-- Sync Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l.73-2.19"/></svg>
+              <!-- Analytics Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+              <!-- Settings Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+          </div>
+
+          <!-- Balance Card -->
+          <div class="balance-card">
+            <div class="balance-label">Current Balance</div>
+            <div class="balance-amount" id="mockBalance">
+              <span class="balance-currency">Rs</span>0.00
+            </div>
+            <div class="balance-row">
+              <div class="mini-card">
+                <div class="mini-card-icon income">↓</div>
+                <div class="mini-card-data">
+                  <div class="mini-card-label">Income</div>
+                  <div class="mini-card-val" id="mockIncome">Rs 0.00</div>
+                </div>
+              </div>
+              <div class="mini-card">
+                <div class="mini-card-icon expense">↑</div>
+                <div class="mini-card-data">
+                  <div class="mini-card-label">Expense</div>
+                  <div class="mini-card-val" id="mockExpense">Rs 0.00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Books Section Selector -->
+          <div class="books-section">
+            <span class="section-title">Books</span>
+            <span class="new-book-btn"><b>+</b> NEW BOOK</span>
+          </div>
+          
+          <div class="pills-container">
+            <span class="pill active">My Book</span>
+            <span class="pill inactive">Riding</span>
+          </div>
+
+          <!-- Search & Filter rows -->
+          <div class="search-row">
+            <div class="search-box">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/></svg>
+              Search transactions...
+            </div>
+            <div class="filter-btn-square">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 12h6"/></svg>
+            </div>
+          </div>
+
+          <!-- Transactions list -->
+          <div class="transaction-list" id="mockTxList">
+            <!-- Empty state at start -->
+            <div style="text-align: center; color: var(--app-text-muted); font-size: 11px; padding-top: 40px; font-weight: 500;" id="emptyTxMsg">
+              No transactions yet.<br>Tap the button below to add!
+            </div>
+          </div>
+
+          <!-- Simulation FAB in Center bottom -->
+          <div class="fab-btn-center fab-pulse" id="mockFab">+</div>
+
+          <!-- Add Transaction Form Overlay matching screenshot 2 -->
+          <div class="form-sheet" id="mockForm">
+            <div class="form-header">
+              <svg class="form-back-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              <h2>New Transaction</h2>
+            </div>
+            
+            <div class="toggle-container">
+              <div class="toggle-btn expense-active" id="btnToggleExpense">↓ Expense</div>
+              <div class="toggle-btn inactive" id="btnToggleIncome">↑ Income</div>
+            </div>
+
+            <div class="form-group-box">
+              <div class="form-group-title">Transaction Details</div>
+              
+              <div class="form-field-row">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                <div class="field-content">
+                  <span class="field-lbl">Title</span>
+                  <span class="field-input-mock" id="formTitleInput">Title of transaction</span>
+                </div>
+              </div>
+
+              <div class="form-field-row">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                <div class="field-content">
+                  <span class="field-lbl">Amount</span>
+                  <span class="field-input-mock" id="formAmountInput">Rs 0.00</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group-box">
+              <div class="form-group-title">Classification & Payment</div>
+              
+              <div class="form-field-row">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m2 7 4.4 7.3a1 1 0 0 0 1.7 0L12.5 7M15 21h6a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1Z"/><circle cx="7.25" cy="5.25" r="3.25"/></svg>
+                <div class="field-content">
+                  <span class="field-lbl">Category</span>
+                  <span class="field-input-mock has-val" id="formCategoryInput">General</span>
+                </div>
+                <svg class="dropdown-arrow-mini" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+
+              <div class="form-field-row">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><path d="M2 10h20M6 15h.01M10 15h2"/></svg>
+                <div class="field-content">
+                  <span class="field-lbl">Payment Method</span>
+                  <span class="field-input-mock has-val" id="formPaymentInput">Cash</span>
+                </div>
+                <svg class="dropdown-arrow-mini" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+
+              <div class="form-field-row">
+                <svg class="field-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <div class="field-content">
+                  <span class="field-lbl">Transaction Date</span>
+                  <span class="field-input-mock has-val" id="formDateInput">Tuesday, April 14, 2026</span>
+                </div>
+                <svg class="dropdown-arrow-mini" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+              </div>
+            </div>
+
+            <button class="form-save-btn" id="formSaveBtn">Save Transaction</button>
+          </div>
+
+          <!-- Screen 3 Inside Phone: Financial Analysis Trends matching screenshot 4 -->
+          <div class="chart-screen" id="mockChartScreen">
+            <div class="app-bar-trends">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              <h2 style="font-size: 18px; font-weight: 800;">Financial Analysis</h2>
+            </div>
+            
+            <div class="trends-tab-bar" id="trendsTabBar">
+              <div class="trends-tab-item">Overview</div>
+              <div class="trends-tab-item">Categories</div>
+              <div class="trends-tab-item active" id="tabTrendsItem">Trends</div>
+              <div class="trends-tab-item" id="tabProgressItem">Progress</div>
+            </div>
+
+            <!-- Page 1: Trends Tab Content -->
+            <div id="trendsTabContent" style="display: flex; flex-direction: column; flex: 1;">
+              <div class="trends-periods">
+                <div class="period-btn">Today</div>
+                <div class="period-btn">This Week</div>
+                <div class="period-btn active">✓ This Month</div>
+              </div>
+
+              <div class="trends-filters">
+                <div class="filter-dropdown-mock">
+                  All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <div class="filter-dropdown-mock">
+                  All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+
+              <div class="card-trends">
+                <div class="trends-card-title">Daily Trends</div>
+                <div class="trends-svg-container">
+                  <!-- SVG Grid lines -->
+                  <svg class="trends-svg-grid" width="100%" height="100%">
+                    <line x1="0" y1="20" x2="300" y2="20" />
+                    <line x1="0" y1="50" x2="300" y2="50" />
+                    <line x1="0" y1="80" x2="300" y2="80" />
+                    <line x1="0" y1="110" x2="300" y2="110" />
+                    
+                    <line x1="40" y1="0" x2="40" y2="140" />
+                    <line x1="90" y1="0" x2="90" y2="140" />
+                    <line x1="140" y1="0" x2="140" y2="140" />
+                    <line x1="190" y1="0" x2="190" y2="140" />
+                    <line x1="240" y1="0" x2="240" y2="140" />
+                  </svg>
+                  
+                  <!-- Curved lines for Income (green) and Expense (red) matching curves in Screenshot 4 -->
+                  <svg width="100%" height="100%" viewBox="0 0 300 140" style="position: absolute; overflow: visible;">
+                    <defs>
+                      <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#00B570" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#00B570" stop-opacity="0"/>
+                      </linearGradient>
+                      <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#FF5C5C" stop-opacity="0.3"/>
+                        <stop offset="100%" stop-color="#FF5C5C" stop-opacity="0"/>
+                      </linearGradient>
+                    </defs>
+                    
+                    <!-- Expense fill & line -->
+                    <path class="chart-fill-gradient" fill="url(#gradExpense)" d="M 0 70 Q 20 40 40 45 T 80 80 T 120 75 T 160 90 T 200 80 T 240 120 T 280 90 L 280 140 L 0 140 Z" />
+                    <path class="chart-wavy-path" stroke="#FF5C5C" d="M 0 70 Q 20 40 40 45 T 80 80 T 120 75 T 160 90 T 200 80 T 240 120 T 280 90" id="expensePath" stroke-dasharray="600" stroke-dashoffset="600"/>
+                    
+                    <!-- Income fill & line -->
+                    <path class="chart-fill-gradient" fill="url(#gradIncome)" d="M 0 140 Q 20 50 40 40 T 80 140 T 120 55 T 160 110 T 200 100 T 240 105 T 280 30 L 280 140 Z" />
+                    <path class="chart-wavy-path" stroke="#00B570" d="M 0 140 Q 20 50 40 40 T 80 140 T 120 55 T 160 110 T 200 100 T 240 105 T 280 30" id="incomePath" stroke-dasharray="600" stroke-dashoffset="600"/>
+                    
+                    <!-- SVG dots representing markers in the grid -->
+                    <g class="chart-dots">
+                      <circle cx="40" cy="40" r="4.5" fill="#00B570" />
+                      <circle cx="120" cy="55" r="4.5" fill="#00B570" />
+                      <circle cx="280" cy="30" r="4.5" fill="#00B570" />
+                      
+                      <circle cx="40" cy="45" r="4.5" fill="#FF5C5C" />
+                      <circle cx="80" cy="80" r="4.5" fill="#FF5C5C" />
+                      <circle cx="200" cy="80" r="4.5" fill="#FF5C5C" />
+                    </g>
+                  </svg>
+                </div>
+                
+                <div class="chart-legend">
+                  <div style="display:flex; align-items:center; gap: 5px;">
+                    <div class="legend-box" style="background:#00B570"></div>
+                    <span>Income</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap: 5px;">
+                    <div class="legend-box" style="background:#FF5C5C"></div>
+                    <span>Expense</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Insights matching screenshot 4 -->
+              <div style="font-size: 13px; font-weight:800; color:var(--app-text-dark); margin-bottom:8px; margin-top:2px;">Insights</div>
+              <div style="background: #FFFFFF; border-radius: 16px; padding: 12px; font-size: 11px; display:flex; flex-direction:column; gap:8px; box-shadow: 0 4px 12px rgba(0,0,0,0.01);">
+                <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(0,0,0,0.03); padding-bottom:6px;">
+                  <span style="display:flex; align-items:center; gap: 5px; font-weight:600;"><span style="color:#00B570">↑</span> Average Daily Income</span>
+                  <span style="font-weight:800; color:#00B570;">Rs 455.40</span>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between;">
+                  <span style="display:flex; align-items:center; gap: 5px; font-weight:600;"><span style="color:#FF5C5C">↓</span> Average Daily Expense</span>
+                  <span style="font-weight:800; color:#FF5C5C;">Rs 10.90</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Page 2: Progress Tab Content matching screenshot 5 -->
+            <div id="progressTabContent" style="display: none; flex-direction: column; flex: 1;">
+              <div class="trends-periods">
+                <div class="period-btn">Today</div>
+                <div class="period-btn">This Week</div>
+                <div class="period-btn active">✓ This Month</div>
+              </div>
+
+              <div class="trends-filters">
+                <div class="filter-dropdown-mock">
+                  All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+                <div class="filter-dropdown-mock">
+                  All <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </div>
+              </div>
+
+              <div class="goal-card-box">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                  <span style="font-size:13px; font-weight:800; color:var(--app-text-dark);">Financial Goals</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color:var(--app-text-muted)"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                </div>
+
+                <!-- Goal 1 -->
+                <div class="goal-row">
+                  <div class="goal-lbl-line">
+                    <span>Monthly Income Target</span>
+                    <span class="goal-val-pct" style="color:#00B570;">40%</span>
+                  </div>
+                  <div class="goal-bar-bg">
+                    <div class="goal-bar-fill" id="goalFillIncome" style="background:#00B570;"></div>
+                  </div>
+                  <div class="goal-scale-line">
+                    <span>20,000.00</span>
+                    <span>Rs 50,000.00</span>
+                  </div>
+                </div>
+
+                <!-- Goal 2 -->
+                <div class="goal-row" style="margin-top:4px;">
+                  <div class="goal-lbl-line">
+                    <span>Monthly Expense Limit</span>
+                    <span class="goal-val-pct" style="color:#FF5C5C;">1%</span>
+                  </div>
+                  <div class="goal-bar-bg">
+                    <div class="goal-bar-fill" id="goalFillExpense" style="background:#FF5C5C;"></div>
+                  </div>
+                  <div class="goal-scale-line">
+                    <span>480.00</span>
+                    <span>Rs 30,000.00</span>
+                  </div>
+                </div>
+
+                <!-- Goal 3 -->
+                <div class="goal-row" style="margin-top:4px;">
+                  <div class="goal-lbl-line">
+                    <span>Savings Target</span>
+                    <span class="goal-val-pct" style="color:#0081C4;">97%</span>
+                  </div>
+                  <div class="goal-bar-bg">
+                    <div class="goal-bar-fill" id="goalFillSavings" style="background:#0081C4;"></div>
+                  </div>
+                  <div class="goal-scale-line">
+                    <span>19,520.00</span>
+                    <span>Rs 20,000.00</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Progress Metrics -->
+              <div style="font-size: 13px; font-weight:800; color:var(--app-text-dark); margin-bottom:8px;">Progress Metrics</div>
+              <div class="metrics-card">
+                <div class="metric-row">
+                  <span class="metric-name">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0081C4" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Financial Health Score
+                  </span>
+                  <span class="metric-val">97.6%</span>
+                </div>
+                <div class="metric-row">
+                  <span class="metric-name">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E67E22" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2 4.9-4.9 2-1.5-1.5 2-4.9 4.9-2 1.5 1.5z"/></svg>
+                    Spending Efficiency
+                  </span>
+                  <span class="metric-val" style="color:#E67E22;">97.7%</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SCENE 3: CLOUD SYNC & MULTI-DEVICE ================= -->
+    <div class="scene" id="scene3">
+      <h1 class="promo-title">Real-Time Cloud Synchronization</h1>
+      <p class="promo-subtitle">Powered by Firebase. Your financial data is instantly, securely synchronized across all your devices.</p>
+
+      <div class="sync-showcase">
+        <!-- Cloud Node -->
+        <div class="cloud-node">
+          <svg class="cloud-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+        </div>
+
+        <div class="device-container">
+          <!-- Small Phone Mockup (Active Screen) -->
+          <div class="phone-mockup" style="width: 200px; height: 360px; border-width: 6px; border-radius: 20px; opacity: 1; transform: none; box-shadow: 0 15px 30px rgba(0,0,0,0.5);">
+            <div class="phone-screen" style="padding: 12px 8px 8px 8px;">
+              <div class="app-title-dropdown" style="font-size: 13px; margin-bottom: 8px;">My Book</div>
+              <div class="balance-card" style="padding: 8px; border-radius: 10px; margin-bottom: 8px;">
+                <div class="balance-label" style="font-size: 7px;">Current Balance</div>
+                <div class="balance-amount" style="font-size: 16px; margin-bottom: 0;">Rs 19,520.00</div>
+              </div>
+              <div class="section-title" style="font-size: 8px; margin-bottom: 4px;">Transactions</div>
+              
+              <div class="tx-item visible" style="padding: 6px; border-radius: 8px; margin-bottom: 4px; transform:none; opacity:1;">
+                <div class="tx-left">
+                  <div class="tx-title" style="font-size: 9px;">Bike Engine Oil</div>
+                </div>
+                <div class="tx-right">
+                  <span class="tx-amount-val val-expense" style="font-size: 9px;">Rs 480.00</span>
+                </div>
+              </div>
+              
+              <div class="tx-item visible" style="padding: 6px; border-radius: 8px; transform:none; opacity:1;">
+                <div class="tx-left">
+                  <div class="tx-title" style="font-size: 9px;">Salary</div>
+                </div>
+                <div class="tx-right">
+                  <span class="tx-amount-val val-income" style="font-size: 9px;">Rs 20,000.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tablet Mockup -->
+          <div class="tablet-mockup">
+            <div class="tablet-screen">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.04); padding-bottom: 8px; margin-bottom: 10px;">
+                <div class="app-title-dropdown" style="font-size: 16px;">
+                  My Book Dashboard
+                </div>
+                <div style="display:flex; gap: 15px; font-size: 10px; color: var(--app-text-muted); font-weight:700;">
+                  <span style="color: var(--app-teal-dark);">Transactions</span>
+                  <span>Analytics</span>
+                  <span>Goals</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 12px; flex: 1;">
+                <div style="flex: 1.2; display: flex; flex-direction: column; gap: 8px;">
+                  <div class="balance-card" style="margin-bottom: 0; padding: 12px;">
+                    <div class="balance-label" style="font-size: 8px; text-align:left;">Real-time balance</div>
+                    <div class="balance-amount" style="font-size: 20px; margin-bottom: 6px; justify-content:flex-start;">
+                      <span class="balance-currency">Rs</span>19,520.00
+                    </div>
+                    <div style="display: flex; gap: 8px; font-size: 9px; color: rgba(255,255,255,0.85); font-weight:600;">
+                      <span>Inc: Rs 20k</span>
+                      <span>Exp: Rs 480</span>
+                    </div>
+                  </div>
+
+                  <!-- Mini Sync Visual Card -->
+                  <div style="background: rgba(0, 181, 112, 0.05); border: 1.5px dashed rgba(0, 181, 112, 0.3); border-radius: 12px; padding: 10px; display:flex; align-items:center; justify-content:center; gap: 8px;">
+                    <span style="font-size: 10px; color: var(--app-teal-dark); font-weight:800;">✓ Firebase Connected & Synced</span>
+                  </div>
+                </div>
+
+                <div style="flex: 1.5; background: #FFFFFF; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.01);">
+                  <div style="font-size: 9px; font-weight:800; color: var(--app-text-muted); text-transform:uppercase; margin-bottom: 2px;">Sync Logs</div>
+                  
+                  <div class="tx-item visible" style="padding: 6px 10px; border-radius: 10px; opacity: 1; transform: none;">
+                    <div class="tx-left"><span class="tx-title" style="font-size:10px;">Bike Engine Oil</span></div>
+                    <span class="tx-amount-val val-expense" style="font-size: 10px;">Rs 480.00</span>
+                  </div>
+                  
+                  <div class="tx-item visible" style="padding: 6px 10px; border-radius: 10px; opacity: 1; transform: none;">
+                    <div class="tx-left"><span class="tx-title" style="font-size:10px;">Salary</span></div>
+                    <span class="tx-amount-val val-income" style="font-size: 10px;">Rs 20,000.00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= SCENE 4: OUTRO / CALL TO ACTION ================= -->
+    <div class="scene" id="scene4">
+      <div class="glow-circle" style="top: 20%; left: 40%"></div>
+      
+      <div class="app-title-dropdown" style="font-size: 42px; margin-bottom: 10px; gap: 10px; font-family: var(--font-outfit); font-weight: 900; color: var(--primary);">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="color: var(--primary);"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+        Cash Book
+      </div>
+      
+      <h1 class="promo-title" style="font-size: 38px;">Smart Financial Management <br><span class="highlight-green">In Your Pocket</span></h1>
+      <p class="promo-subtitle" style="margin-bottom: 20px;">Download today and start tracking your income, expenses, and savings goals with premium Firebase cloud sync.</p>
+      
+      <div class="download-badges">
+        <div class="badge-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2m12 11.5v-1l-3.2-1.8c.2-.4.2-.8 0-1.2L17 8.7V7.8l-4.5 2.6V5.2h-1v5.2L7 7.8v.9l3.2 1.8c-.2.4-.2.8 0 1.2L7 13.5v1l4.5-2.6v5.2h1v-5.2l4.5 2.6z"/></svg>
+          <div style="text-align: left;">
+            <div class="badge-sub">Get it on</div>
+            <div class="badge-main">Google Play</div>
+          </div>
+        </div>
+
+        <div class="badge-btn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.2.67-2.92 1.49-.62.71-1.16 1.85-1.01 2.96 1.1.09 2.23-.58 2.94-1.39z"/></svg>
+          <div style="text-align: left;">
+            <div class="badge-sub">Download on the</div>
+            <div class="badge-main">App Store</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- JavaScript to drive high fidelity, perfectly timed visual animations of the "video" -->
+  <script>
+    const duration = 24000; // 24 seconds total video
+    const virtualCursor = document.getElementById('virtualCursor');
+    
+    // Scene Transitions timestamps
+    // Scene 1: 0 - 4s
+    // Scene 2 (App Demo - Add Transaction): 4s - 13s
+    // Scene 2 (App Demo - Chart Analysis / Progress): 13s - 18s
+    // Scene 3 (Firebase Multi-device Sync): 18s - 22s
+    // Scene 4 (Outro): 22s - 24s
+
+    function animateValue(id, start, end, duration, prefix = "Rs ", suffix = "") {
+      const obj = document.getElementById(id);
+      let startTimestamp = null;
+      const step = (timestamp) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        const currentVal = (progress * (end - start) + start).toFixed(2);
+        
+        // Add comma grouping
+        const formattedVal = parseFloat(currentVal).toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        
+        obj.innerHTML = prefix + formattedVal + suffix;
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+      window.requestAnimationFrame(step);
+    }
+
+    function moveCursor(x, y, callback, click = false) {
+      virtualCursor.style.opacity = 1;
+      virtualCursor.style.left = x + 'px';
+      virtualCursor.style.top = y + 'px';
+      
+      setTimeout(() => {
+        if (click) {
+          virtualCursor.classList.add('click-active');
+          setTimeout(() => {
+            virtualCursor.classList.remove('click-active');
+            if (callback) callback();
+          }, 400);
+        } else {
+          if (callback) callback();
+        }
+      }, 1000);
+    }
+
+    function hideCursor() {
+      virtualCursor.style.opacity = 0;
+    }
+
+    // Sequence timelines
+    setTimeout(() => {
+      // Scene 1 ends, Scene 2 begins
+      document.getElementById('scene1').classList.remove('active');
+      document.getElementById('scene2').classList.add('active');
+    }, 4000);
+
+    // Timeline actions inside Scene 2 (Phone demo starts at 5.5s)
+    setTimeout(() => {
+      // Step 1: Cursor moves to the FAB button inside phone
+      const phoneRect = document.getElementById('phoneMockup').getBoundingClientRect();
+      const canvasRect = document.getElementById('videoCanvas').getBoundingClientRect();
+      
+      // Calculate coordinates relative to videoCanvas
+      const fabBtn = document.getElementById('mockFab');
+      const fabRect = fabBtn.getBoundingClientRect();
+      const fabX = fabRect.left - canvasRect.left + 26;
+      const fabY = fabRect.top - canvasRect.top + 26;
+
+      moveCursor(fabX, fabY, () => {
+        // Tap action
+        document.getElementById('mockForm').classList.add('open');
+        document.getElementById('mockFab').classList.remove('fab-pulse');
+        
+        // Expense toggle click & type: Title: "Bike Engine Oil"
+        setTimeout(() => {
+          const titleField = document.getElementById('formTitleInput');
+          titleField.innerHTML = "";
+          const titleText = "Bike Engine Oil";
+          let charIdx = 0;
+          const typeInterval = setInterval(() => {
+            titleField.innerHTML += titleText[charIdx];
+            titleField.classList.add('has-val');
+            charIdx++;
+            if (charIdx >= titleText.length) {
+              clearInterval(typeInterval);
+              
+              // Type amount: "Rs 480.00"
+              setTimeout(() => {
+                const amountField = document.getElementById('formAmountInput');
+                amountField.innerHTML = "Rs 480.00";
+                amountField.classList.add('has-val');
+                amountField.style.color = "var(--app-expense-red)";
+                
+                // Select category "Vehicle"
+                setTimeout(() => {
+                  document.getElementById('formCategoryInput').innerHTML = "Vehicle";
+                  
+                  // Click Save
+                  setTimeout(() => {
+                    const saveBtn = document.getElementById('formSaveBtn');
+                    const saveRect = saveBtn.getBoundingClientRect();
+                    const saveX = saveRect.left - canvasRect.left + (saveRect.width / 2);
+                    const saveY = saveRect.top - canvasRect.top + 20;
+                    
+                    moveCursor(saveX, saveY, () => {
+                      // Close Form Sheet, add transaction
+                      document.getElementById('mockForm').classList.remove('open');
+                      document.getElementById('emptyTxMsg').style.display = 'none';
+                      
+                      // Add real list item
+                      const txList = document.getElementById('mockTxList');
+                      const newItem = document.createElement('div');
+                      newItem.className = 'tx-item visible';
+                      newItem.innerHTML = `
+                        <div class="tx-left">
+                          <span class="tx-title">Bike Engine Oil</span>
+                          <div class="tx-tags">
+                            <span class="tag-pill category-vehicle">Vehicle</span>
+                            <span class="tag-pill payment-cash">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                              Cash
+                            </span>
+                          </div>
+                        </div>
+                        <div class="tx-right">
+                          <span class="tx-amount-val val-expense">Rs 480.00</span>
+                          <span class="tx-sync-date">
+                            <svg class="orange-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                            Apr 13
+                          </span>
+                        </div>
+                      `;
+                      txList.appendChild(newItem);
+                      
+                      // Animate available balance and Expense
+                      animateValue('mockBalance', 0, -480, 1000);
+                      animateValue('mockExpense', 0, 480, 1000);
+                      
+                      // Trigger dynamic pulse glow
+                      document.getElementById('mockBalance').style.color = 'var(--app-expense-red)';
+                      setTimeout(() => {
+                        document.getElementById('mockBalance').style.color = '';
+                      }, 1000);
+
+                      // Fade cursor
+                      hideCursor();
+                      
+                      // Next, Add Income: Salary at 10.5s
+                      triggerIncomeAdd(canvasRect);
+                    }, true);
+                  }, 800);
+                }, 600);
+              }, 600);
+            }
+          }, 80);
+        }, 500);
+      }, true);
+
+    }, 5500);
+
+    function triggerIncomeAdd(canvasRect) {
+      setTimeout(() => {
+        // Move back to FAB
+        const fabBtn = document.getElementById('mockFab');
+        const fabRect = fabBtn.getBoundingClientRect();
+        const fabX = fabRect.left - canvasRect.left + 26;
+        const fabY = fabRect.top - canvasRect.top + 26;
+
+        moveCursor(fabX, fabY, () => {
+          document.getElementById('mockForm').classList.add('open');
+          
+          // Switch Toggle to Income
+          const toggleInc = document.getElementById('btnToggleIncome');
+          const toggleIncRect = toggleInc.getBoundingClientRect();
+          const toggleIncX = toggleIncRect.left - canvasRect.left + (toggleIncRect.width / 2);
+          const toggleIncY = toggleIncRect.top - canvasRect.top + 15;
+          
+          moveCursor(toggleIncX, toggleIncY, () => {
+            toggleInc.className = "toggle-btn income-active";
+            document.getElementById('btnToggleExpense').className = "toggle-btn inactive";
+            
+            document.getElementById('formTitleInput').innerHTML = "";
+            document.getElementById('formAmountInput').innerHTML = "Rs 0.00";
+            document.getElementById('formAmountInput').style.color = "inherit";
+            
+            // Type "Salary"
+            setTimeout(() => {
+              const titleField = document.getElementById('formTitleInput');
+              const titleText = "Salary";
+              let charIdx = 0;
+              const typeInterval = setInterval(() => {
+                titleField.innerHTML += titleText[charIdx];
+                charIdx++;
+                if (charIdx >= titleText.length) {
+                  clearInterval(typeInterval);
+                  
+                  // Type amount: "Rs 20,000.00"
+                  setTimeout(() => {
+                    const amountField = document.getElementById('formAmountInput');
+                    amountField.innerHTML = "Rs 20,000.00";
+                    amountField.style.color = "var(--app-teal-light)";
+                    
+                    // Select category "Salary"
+                    setTimeout(() => {
+                      document.getElementById('formCategoryInput').innerHTML = "Salary";
+                      
+                      // Save Income
+                      setTimeout(() => {
+                        const saveBtn = document.getElementById('formSaveBtn');
+                        const saveRect = saveBtn.getBoundingClientRect();
+                        const saveX = saveRect.left - canvasRect.left + (saveRect.width / 2);
+                        const saveY = saveRect.top - canvasRect.top + 20;
+                        
+                        moveCursor(saveX, saveY, () => {
+                          document.getElementById('mockForm').classList.remove('open');
+                          
+                          // Add item to list
+                          const txList = document.getElementById('mockTxList');
+                          const newItem = document.createElement('div');
+                          newItem.className = 'tx-item visible';
+                          newItem.innerHTML = `
+                            <div class="tx-left">
+                              <span class="tx-title">Salary</span>
+                              <div class="tx-tags">
+                                <span class="tag-pill category-salary">Salary</span>
+                                <span class="tag-pill payment-cash">
+                                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                                  Cash
+                                </span>
+                              </div>
+                            </div>
+                            <div class="tx-right">
+                              <span class="tx-amount-val val-income">Rs 20,000.00</span>
+                              <span class="tx-sync-date">
+                                <svg class="orange-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                                Apr 13
+                              </span>
+                            </div>
+                          `;
+                          // Insert at top of list
+                          txList.insertBefore(newItem, txList.firstChild);
+                          
+                          // Animate balance and Income
+                          animateValue('mockBalance', -480, 19520, 1000);
+                          animateValue('mockIncome', 0, 20000, 1000);
+                          
+                          document.getElementById('mockBalance').style.color = 'var(--app-teal-light)';
+                          setTimeout(() => {
+                            document.getElementById('mockBalance').style.color = '';
+                          }, 1000);
+
+                          hideCursor();
+                          
+                          // Transition to Trends screen at 14.5s
+                          triggerAnalyticsView(canvasRect);
+                        }, true);
+                      }, 800);
+                    }, 600);
+                  }, 600);
+                }
+              }, 80);
+            }, 500);
+          }, true);
+        }, true);
+      }, 1000);
+    }
+
+    function triggerAnalyticsView(canvasRect) {
+      setTimeout(() => {
+        // Slide open the charts screen
+        document.getElementById('mockChartScreen').classList.add('active');
+        
+        // Draw the curved SVG Trends paths
+        setTimeout(() => {
+          const expensePath = document.getElementById('expensePath');
+          const incomePath = document.getElementById('incomePath');
+          
+          expensePath.style.strokeDashoffset = "0";
+          incomePath.style.strokeDashoffset = "0";
+          
+          // Switch to progress tab inside Trends at 16.5s
+          setTimeout(() => {
+            const tabProgress = document.getElementById('tabProgressItem');
+            const tabProgressRect = tabProgress.getBoundingClientRect();
+            const tabProgressX = tabProgressRect.left - canvasRect.left + (tabProgressRect.width / 2);
+            const tabProgressY = tabProgressRect.top - canvasRect.top + 10;
+            
+            moveCursor(tabProgressX, tabProgressY, () => {
+              document.getElementById('tabTrendsItem').className = "trends-tab-item";
+              tabProgress.className = "trends-tab-item active";
+              
+              document.getElementById('trendsTabContent').style.display = 'none';
+              document.getElementById('progressTabContent').style.display = 'flex';
+              
+              // Animate goal fills matching screenshot 5
+              setTimeout(() => {
+                document.getElementById('goalFillIncome').style.width = "40%";
+                document.getElementById('goalFillExpense').style.width = "1%";
+                document.getElementById('goalFillSavings').style.width = "97%";
+                
+                hideCursor();
+              }, 300);
+            }, true);
+          }, 2000);
+          
+        }, 500);
+      }, 2500);
+    }
+
+    // Transition to Scene 3 (Sync Showcase) at 18.0s
+    setTimeout(() => {
+      document.getElementById('scene2').classList.remove('active');
+      document.getElementById('scene3').classList.add('active');
+    }, 18000);
+
+    // Transition to Scene 4 (Outro) at 21.5s
+    setTimeout(() => {
+      document.getElementById('scene3').classList.remove('active');
+      document.getElementById('scene4').classList.add('active');
+    }, 21500);
+
+  </script>
+</body>
+</html>

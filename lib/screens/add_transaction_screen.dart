@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 
 import '../models/transaction.dart';
 import '../services/transaction_service.dart';
 import '../services/settings_service.dart';
+import '../core/constants.dart';
 
 class AddTransactionScreen extends StatefulWidget {
   final Transaction? transaction;
@@ -25,19 +27,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   late String _category;
   String? _customPaymentMethod;
 
-  final List<String> _defaultMainCategories = [
-    'Investment',
-    'Salary',
-    'Groceries',
-    'Restaurant',
-    'Fuel',
-    'Rent',
-    'Internet',
-    'Electricity',
-    'Pharmacy',
-    'Gift',
-    'General',
-  ];
+  // Removed hardcoded list, using AppConstants.defaultCategories
 
   @override
   void initState() {
@@ -215,10 +205,11 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     final textTheme = Theme.of(context).textTheme;
     final settingsService = Provider.of<SettingsService>(context);
 
-    final List<String> categories = [
-      ..._defaultMainCategories,
+    final List<String> categories = {
+      ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
-    ];
+      ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
+    }.toList();
     final List<String> customPaymentMethods =
         settingsService.customPaymentMethods;
 
@@ -323,6 +314,9 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+                ],
                 validator: (value) {
                   if (value == null || value.isEmpty)
                     return 'Please enter an amount.';
