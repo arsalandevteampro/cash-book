@@ -11,36 +11,36 @@ class AppTheme {
   static const Color successColor = Color(0xFF10B981);
 
   static final TextTheme _appTextTheme = TextTheme(
-    displayLarge: GoogleFonts.inter(
-      fontSize: 57,
-      fontWeight: FontWeight.bold,
+    displayLarge: GoogleFonts.outfit(
+      fontSize: 48,
+      fontWeight: FontWeight.w800,
       letterSpacing: -1,
     ),
-    displayMedium: GoogleFonts.inter(
-      fontSize: 45,
-      fontWeight: FontWeight.bold,
+    displayMedium: GoogleFonts.outfit(
+      fontSize: 38,
+      fontWeight: FontWeight.w800,
       letterSpacing: -0.5,
     ),
-    displaySmall: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.bold),
-    headlineLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w700),
-    headlineMedium: GoogleFonts.inter(
-      fontSize: 28,
-      fontWeight: FontWeight.w700,
-    ),
-    headlineSmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700),
-    titleLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w600),
-    titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
-    titleSmall: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-    bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.normal),
-    bodyMedium: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.normal),
-    bodySmall: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.normal),
-    labelLarge: GoogleFonts.inter(
-      fontSize: 14,
+    displaySmall: GoogleFonts.outfit(fontSize: 30, fontWeight: FontWeight.bold),
+    headlineLarge: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold),
+    headlineMedium: GoogleFonts.outfit(
+      fontSize: 22,
       fontWeight: FontWeight.bold,
-      letterSpacing: 0.5,
     ),
-    labelMedium: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold),
-    labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold),
+    headlineSmall: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+    titleLarge: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+    titleMedium: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700),
+    titleSmall: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w700),
+    bodyLarge: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600),
+    bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600),
+    bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w500),
+    labelLarge: GoogleFonts.outfit(
+      fontSize: 13,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.3,
+    ),
+    labelMedium: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.bold),
+    labelSmall: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold),
   );
 
   static final ThemeData lightTheme = ThemeData(
@@ -97,19 +97,44 @@ class AppTheme {
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      prefixIconColor: const Color(0xFF006D5B),
+      suffixIconColor: const Color(0xFF006D5B),
+      labelStyle: const TextStyle(
+        color: Color(0xFF475569),
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Color(0xFF006D5B),
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+      hintStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+        fontWeight: FontWeight.normal,
+        fontSize: 14,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: Color(0xFFCBD5E1), width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: primarySeedColor, width: 2),
+        borderSide: const BorderSide(color: Color(0xFF006D5B), width: 2.0),
       ),
-      contentPadding: const EdgeInsets.all(20),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFFF5F5F), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFFF5F5F), width: 2.0),
+      ),
     ),
   );
 
@@ -127,7 +152,7 @@ class AppTheme {
     scaffoldBackgroundColor: const Color(0xFF121212),
     textTheme: _appTextTheme.apply(
       displayColor: Colors.white,
-      bodyColor: Colors.white.withOpacity(0.9),
+      bodyColor: Colors.white.withValues(alpha: 0.9),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
@@ -142,7 +167,7 @@ class AppTheme {
       color: const Color(0xFF1E1E1E),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(24.0),
-        side: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.1), width: 1),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
@@ -163,16 +188,45 @@ class AppTheme {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF2A2A2A),
+      fillColor: const Color(0xFF1E293B),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      prefixIconColor: const Color(0xFF00D084),
+      suffixIconColor: const Color(0xFF00D084),
+      labelStyle: const TextStyle(
+        color: Color(0xFF94A3B8),
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
+      ),
+      floatingLabelStyle: const TextStyle(
+        color: Color(0xFF00D084),
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+      hintStyle: const TextStyle(
+        color: Color(0xFF64748B),
+        fontWeight: FontWeight.normal,
+        fontSize: 14,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: Color(0xFF334155), width: 1.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF334155), width: 1.5),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: primarySeedColor, width: 2),
+        borderSide: const BorderSide(color: Color(0xFF00D084), width: 2.0),
       ),
-      contentPadding: const EdgeInsets.all(20),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFFF5F5F), width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFFFF5F5F), width: 2.0),
+      ),
     ),
   );
 }

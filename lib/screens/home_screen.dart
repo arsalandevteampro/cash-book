@@ -9,6 +9,7 @@ import '../widgets/pulse_animation.dart';
 import 'add_transaction_screen.dart';
 import 'settings_screen.dart';
 import 'analysis_screen.dart';
+import 'manage_books_screen.dart';
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../widgets/ui_kit/glass_card.dart';
@@ -43,10 +44,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   late final StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
   bool _isAutoBackingUp = false;
+  bool _isBalanceVisible = true;
 
   @override
   void initState() {
     super.initState();
+    _isBalanceVisible = DatabaseService.getSetting<bool>('isBalanceVisible') ?? true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<TransactionService>(context, listen: false).addListener(_onTransactionChanged);
       _checkAutoBackup();
@@ -194,17 +197,12 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         title: GestureDetector(
-          onTap: () => _showBookSelector(context, transactionService),
+          onTap: () => _showBookTreeBottomSheet(context, transactionService),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                transactionService.currentBookName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF006D5B),
-                ),
+              Flexible(
+                child: _buildBreadcrumb(transactionService),
               ),
               const SizedBox(width: 4),
               const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF006D5B), size: 18),
@@ -357,41 +355,109 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 20.0),
         child: Column(
           children: [
-            Text(
-              'Current Balance',
-              style: textTheme.titleSmall?.copyWith(
-                color: Colors.white.withOpacity(0.8),
-                fontWeight: FontWeight.w500,
-                letterSpacing: 1.2,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Current Balance',
+                  style: textTheme.titleSmall?.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isBalanceVisible = !_isBalanceVisible;
+                    });
+                    DatabaseService.updateSetting('isBalanceVisible', _isBalanceVisible);
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(4.0),
+                    child: Icon(
+                      _isBalanceVisible
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded,
+                      color: Colors.white.withOpacity(0.85),
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '${settingsService.currencySymbol} ',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Colors.white.withOpacity(0.8),
-                      fontWeight: FontWeight.w600,
+            if (_isBalanceVisible)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: '${settingsService.currencySymbol} ',
+                        style: TextStyle(
+                          fontSize: 24,
+                          color: Colors.white.withOpacity(0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      TextSpan(
+                        text: settingsService.formatAmount(balance),
+                        style: const TextStyle(
+                          fontSize: 48,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _isBalanceVisible = true;
+                  });
+                  DatabaseService.updateSetting('isBalanceVisible', true);
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.25),
+                      width: 1,
                     ),
                   ),
-                  TextSpan(
-                    text: settingsService.formatAmount(balance),
-                    style: const TextStyle(
-                      fontSize: 48,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1.5,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.lock_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tap to reveal balance',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white.withOpacity(0.95),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -474,16 +540,44 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 4),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            settingsService.formatCurrency(amount),
-            style: textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
+        if (_isBalanceVisible)
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              settingsService.formatCurrency(amount),
+              style: textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  color: Colors.white.withOpacity(0.85),
+                  size: 11,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Protected',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
       ],
     );
   }
@@ -693,93 +787,133 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     TransactionService transactionService,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final path = transactionService.currentBookPath;
+    final pathString = path.map((b) => b['name']?.toString() ?? '').where((n) => n.isNotEmpty).join(' > ');
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Books',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Colors.grey.shade400,
-                  letterSpacing: 1.0,
-                ),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showBookTreeBottomSheet(context, transactionService),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.white12 : const Color(0xFF006D5B).withOpacity(0.15),
               ),
-              TextButton.icon(
-                onPressed: () => _showCreateBookDialog(transactionService),
-                icon: const Icon(Icons.add_rounded, size: 16, color: Color(0xFF00D084)),
-                label: const Text(
-                  'NEW BOOK',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF00D084),
-                    letterSpacing: 0.5,
-                  ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFF006D5B).withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-            ],
-          ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+              ],
+            ),
             child: Row(
-              children: transactionService.books.map((book) {
-                final id = book['id']?.toString() ?? '';
-                final name = book['name']?.toString() ?? 'Book';
-                final isCurrent = id == transactionService.currentBookId;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: InkWell(
-                    onTap: () async {
-                      if (isCurrent) return;
-                      await transactionService.switchBook(id);
-                    },
-                    onLongPress: () {
-                      _showRenameBookDialog(transactionService, id, name);
-                    },
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006D5B).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isCurrent 
-                            ? const Color(0xFF006D5B) 
-                            : Theme.of(context).cardColor,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: isCurrent 
-                          ? [BoxShadow(color: const Color(0xFF006D5B).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
-                          : [BoxShadow(
-                              color: Theme.of(context).brightness == Brightness.light
-                                  ? Colors.black.withOpacity(0.04)
-                                  : Colors.black.withOpacity(0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            )],
-                        border: Border.all(
-                          color: isCurrent 
-                              ? Colors.transparent 
-                              : Theme.of(context).dividerColor.withOpacity(0.1),
-                        ),
-                      ),
-                      child: Text(
-                        name,
-                        style: TextStyle(
-                          color: isCurrent ? Colors.white : const Color(0xFF006D5B),
-                          fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
                   ),
-                );
-              }).toList(),
+                  child: const Icon(
+                    Icons.account_tree_rounded,
+                    color: Color(0xFF006D5B),
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            'ACTIVE CASH BOOK',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF00D084),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        transactionService.currentBookName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF1F2937),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (pathString.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          pathString,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: const Color(0xFF006D5B).withOpacity(0.8),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006D5B).withOpacity(isDark ? 0.2 : 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(
+                        Icons.unfold_more_rounded,
+                        color: Color(0xFF006D5B),
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Tree',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF006D5B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1071,80 +1205,390 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _showBookSelector(
+  // ── Breadcrumb title widget ─────────────────────────────────────────────
+  Widget _buildBreadcrumb(TransactionService transactionService) {
+    final path = transactionService.currentBookPath;
+    if (path.isEmpty) {
+      return const Text(
+        'My Book',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF006D5B)),
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < path.length; i++) ...
+          [
+            if (i > 0)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 2),
+                child: Icon(Icons.chevron_right_rounded, size: 14, color: Color(0xFF006D5B)),
+              ),
+            Flexible(
+              child: Text(
+                path[i]['name']?.toString() ?? '',
+                style: TextStyle(
+                  fontSize: i == path.length - 1 ? 17 : 13,
+                  fontWeight: i == path.length - 1 ? FontWeight.w700 : FontWeight.w400,
+                  color: const Color(0xFF006D5B),
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ],
+      ],
+    );
+  }
+
+  // ── Tree-view Book Selector ───────────────────────────────────────────────
+  Future<void> _showBookTreeBottomSheet(
     BuildContext context,
     TransactionService transactionService,
   ) async {
-    final selected = await showModalBottomSheet<String>(
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              const Text(
-                'Select Book',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              ...transactionService.books.map((book) {
-                final id = book['id']?.toString() ?? '';
-                final name = book['name']?.toString() ?? 'Book';
-                final isCurrent = id == transactionService.currentBookId;
-                return ListTile(
-                  leading: Icon(
-                    isCurrent
-                        ? Icons.check_circle_rounded
-                        : Icons.menu_book_rounded,
-                  ),
-                  title: Text(name),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 20),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _showRenameBookDialog(transactionService, id, name);
-                        },
+        String sheetSearchQuery = '';
+        final Set<String> sheetCollapsedBookIds = {};
+
+        return StatefulBuilder(
+          builder: (ctx, setModalState) {
+            void refresh() => setModalState(() {});
+            final rootBooks = transactionService.rootBooks;
+            final allBooks = transactionService.books;
+
+            final displayBooks = sheetSearchQuery.isEmpty
+                ? rootBooks
+                : allBooks
+                    .where((b) => (b['name']?.toString() ?? '')
+                        .toLowerCase()
+                        .contains(sheetSearchQuery.toLowerCase()))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.65,
+              minChildSize: 0.40,
+              maxChildSize: 0.92,
+              builder: (_, scrollController) {
+                return Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 4),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                        onPressed: () {
-                          Navigator.of(ctx).pop();
-                          _showDeleteBookDialog(transactionService, id, name);
-                        },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.account_tree_rounded,
+                            color: Color(0xFF006D5B),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Select Cash Book',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          ),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () async {
+                              Navigator.of(ctx).pop();
+                              await _showCreateBookDialog(transactionService);
+                            },
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('New Book'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF006D5B),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  onTap: () => Navigator.of(ctx).pop(id),
+                    ),
+                    // Quick Search Field inside sheet
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: TextField(
+                        onChanged: (val) => setModalState(() => sheetSearchQuery = val.trim()),
+                        decoration: InputDecoration(
+                          hintText: 'Search book tree...',
+                          prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          filled: true,
+                          fillColor: Theme.of(ctx).brightness == Brightness.dark
+                              ? const Color(0xFF1E1E1E)
+                              : Colors.grey.shade100,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 16),
+                    Expanded(
+                      child: displayBooks.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No books found',
+                                style: TextStyle(color: Colors.grey.shade500),
+                              ),
+                            )
+                          : ListView(
+                              controller: scrollController,
+                              padding: const EdgeInsets.only(bottom: 12),
+                              children: [
+                                ...displayBooks.map((b) {
+                                  if (sheetSearchQuery.isNotEmpty) {
+                                    return _buildSingleBookNode(
+                                      ctx: ctx,
+                                      book: b,
+                                      transactionService: transactionService,
+                                    );
+                                  }
+                                  return _buildBookTreeNode(
+                                    ctx: ctx,
+                                    book: b,
+                                    transactionService: transactionService,
+                                    depth: 0,
+                                    refresh: refresh,
+                                    collapsedBookIds: sheetCollapsedBookIds,
+                                  );
+                                }),
+                              ],
+                            ),
+                    ),
+                    // Sticky Bottom Bar with Manage All Books Full Screen option
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        color: Theme.of(ctx).cardColor,
+                        border: Border(
+                          top: BorderSide(
+                            color: Theme.of(ctx).dividerColor.withOpacity(0.1),
+                          ),
+                        ),
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(ctx).pop();
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const ManageBooksScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.fullscreen_rounded, size: 20),
+                          label: const Text('Manage All Books (Full Screen)'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF006D5B),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
-              }),
-              ListTile(
-                leading: const Icon(Icons.add_circle_outline_rounded),
-                title: const Text('Create New Book'),
-                onTap: () => Navigator.of(ctx).pop('__create__'),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+              },
+            );
+          },
         );
       },
     );
+  }
 
-    if (!mounted || selected == null) return;
-    if (selected == '__create__') {
-      await _showCreateBookDialog(transactionService);
-      return;
-    }
+  Widget _buildSingleBookNode({
+    required BuildContext ctx,
+    required Map<String, dynamic> book,
+    required TransactionService transactionService,
+  }) {
+    final id = book['id']?.toString() ?? '';
+    final name = book['name']?.toString() ?? 'Book';
+    final isCurrent = id == transactionService.currentBookId;
 
-    if (selected != transactionService.currentBookId) {
-      await transactionService.switchBook(selected);
-    }
+    return ListTile(
+      leading: Icon(
+        Icons.menu_book_rounded,
+        color: isCurrent ? const Color(0xFF006D5B) : Colors.grey,
+      ),
+      title: Text(
+        name,
+        style: TextStyle(
+          fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+          color: isCurrent ? const Color(0xFF006D5B) : null,
+        ),
+      ),
+      trailing: isCurrent
+          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF006D5B))
+          : null,
+      onTap: () async {
+        Navigator.of(ctx).pop();
+        if (!isCurrent) {
+          await transactionService.switchBook(id);
+        }
+      },
+    );
+  }
+
+  /// Builds one tree node and its children recursively.
+  Widget _buildBookTreeNode({
+    required BuildContext ctx,
+    required Map<String, dynamic> book,
+    required TransactionService transactionService,
+    required int depth,
+    required VoidCallback refresh,
+    required Set<String> collapsedBookIds,
+  }) {
+    final id = book['id']?.toString() ?? '';
+    final name = book['name']?.toString() ?? 'Book';
+    final isCurrent = id == transactionService.currentBookId;
+    final children = transactionService.getDirectSubBooks(id);
+    final hasChildren = children.isNotEmpty;
+    final isExpanded = !collapsedBookIds.contains(id);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () async {
+            Navigator.of(ctx).pop();
+            if (id != transactionService.currentBookId) {
+              await transactionService.switchBook(id);
+            }
+          },
+          child: Padding(
+            padding: EdgeInsets.only(
+              left: 16.0 + depth * 20.0,
+              right: 8,
+              top: 4,
+              bottom: 4,
+            ),
+            child: Row(
+              children: [
+                if (hasChildren)
+                  InkWell(
+                    onTap: () {
+                      if (collapsedBookIds.contains(id)) {
+                        collapsedBookIds.remove(id);
+                      } else {
+                        collapsedBookIds.add(id);
+                      }
+                      refresh();
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_down_rounded
+                            : Icons.keyboard_arrow_right_rounded,
+                        color: const Color(0xFF006D5B),
+                        size: 20,
+                      ),
+                    ),
+                  )
+                else if (depth > 0) ...[
+                  Icon(
+                    Icons.subdirectory_arrow_right_rounded,
+                    size: 16,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Icon(
+                  hasChildren
+                      ? (isExpanded ? Icons.folder_open_rounded : Icons.folder_rounded)
+                      : isCurrent
+                          ? Icons.menu_book_rounded
+                          : Icons.book_outlined,
+                  size: 20,
+                  color: isCurrent
+                      ? const Color(0xFF006D5B)
+                      : hasChildren
+                          ? const Color(0xFFE0A800)
+                          : Colors.grey.shade600,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                      fontSize: 15,
+                      color: isCurrent ? const Color(0xFF006D5B) : null,
+                    ),
+                  ),
+                ),
+                if (isCurrent)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 4),
+                    child: Icon(Icons.check_circle_rounded, size: 16, color: Color(0xFF006D5B)),
+                  ),
+                // Add sub-book
+                IconButton(
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  tooltip: 'Add sub-book',
+                  color: const Color(0xFF006D5B),
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    await _showCreateSubBookDialog(transactionService, parentId: id, parentName: name);
+                  },
+                ),
+                // Rename
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  tooltip: 'Rename',
+                  color: Colors.grey.shade600,
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _showRenameBookDialog(transactionService, id, name);
+                  },
+                ),
+                // Delete
+                IconButton(
+                  icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                  tooltip: 'Delete',
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _showDeleteBookDialog(transactionService, id, name);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Render children recursively
+        if (hasChildren && isExpanded)
+          ...children.map((child) => _buildBookTreeNode(
+                ctx: ctx,
+                book: child,
+                transactionService: transactionService,
+                depth: depth + 1,
+                refresh: refresh,
+                collapsedBookIds: collapsedBookIds,
+              )),
+      ],
+    );
   }
 
   Future<void> _showRenameBookDialog(
@@ -1212,7 +1656,12 @@ class _HomeScreenState extends State<HomeScreen> {
     String bookId,
     String name,
   ) async {
-    if (transactionService.books.length <= 1) {
+    final subBooks = transactionService.getDirectSubBooks(bookId);
+    final hasChildren = subBooks.isNotEmpty;
+    final rootBooks = transactionService.rootBooks;
+    final isRoot = !transactionService.books
+        .any((b) => b['id'] == bookId && b['parentId'] != null);
+    if (isRoot && rootBooks.length <= 1 && !hasChildren) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('At least one book is required.'),
@@ -1228,7 +1677,9 @@ class _HomeScreenState extends State<HomeScreen> {
         return AlertDialog(
           title: const Text('Delete Book'),
           content: Text(
-            'Delete "$name"? This will permanently remove all transactions and goals in this book.',
+            hasChildren
+                ? 'Delete "$name" and ALL its sub-books? This will permanently remove all transactions inside them.'
+                : 'Delete "$name"? This will permanently remove all transactions and goals in this book.',
           ),
           actions: [
             TextButton(
@@ -1286,6 +1737,62 @@ class _HomeScreenState extends State<HomeScreen> {
     final cleanName = (name ?? '').trim();
     if (cleanName.isEmpty) return;
     await transactionService.createBook(cleanName);
+  }
+
+  Future<void> _showCreateSubBookDialog(
+    TransactionService transactionService, {
+    required String parentId,
+    required String parentName,
+  }) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Add Sub-Book'),
+              const SizedBox(height: 2),
+              Text(
+                'Under: $parentName',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.normal),
+              ),
+            ],
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              hintText: 'Sub-book name',
+              prefixIcon: const Icon(Icons.subdirectory_arrow_right_rounded, size: 18),
+              prefixIconColor: const Color(0xFF006D5B),
+            ),
+            onSubmitted: (value) => Navigator.of(ctx).pop(value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
+              child: const Text('Create'),
+            ),
+          ],
+        );
+      },
+    );
+    final cleanName = (name ?? '').trim();
+    if (cleanName.isEmpty) return;
+    await transactionService.createSubBook(cleanName, parentId: parentId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sub-book "$cleanName" created under "$parentName"')),
+      );
+    }
   }
 }
 

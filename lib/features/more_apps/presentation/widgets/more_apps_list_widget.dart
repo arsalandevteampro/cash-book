@@ -33,180 +33,279 @@ class MoreAppsListWidget extends ConsumerWidget {
     final appsAsync = ref.watch(activeAppsStreamProvider);
     final theme = Theme.of(context);
 
-    return appsAsync.when(
-      data: (apps) {
-        if (apps.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Center(
-              child: Text(
-                'No apps available.',
-                style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
-              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Premium Beta Access Request Banner
+        Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
+                theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-          );
-        }
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: apps.length,
-          itemBuilder: (context, index) {
-            final app = apps[index];
-            final isTesting = app.mode == 'testing';
-
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    if (isTesting) {
-                      AppTestingGateSheet.show(context, app);
-                    } else {
-                      _launchUrl(context, app.playStoreUrl);
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.35),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: theme.colorScheme.surfaceContainerLow,
-                      border: Border.all(
-                        color: theme.colorScheme.outlineVariant,
-                        width: 0.5,
-                      ),
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
                     ),
-                    child: Row(
+                    child: const Icon(
+                      Icons.science_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // App Icon
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: CachedNetworkImage(
-                            imageUrl: app.imageUrl,
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              width: 48,
-                              height: 48,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
-                              ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              width: 48,
-                              height: 48,
-                              color: theme.colorScheme.primaryContainer,
-                              child: Icon(
-                                Icons.apps_rounded,
-                                color: theme.colorScheme.primary,
-                                size: 24,
-                              ),
-                            ),
+                        Text(
+                          'Beta Testing Access',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: theme.colorScheme.primary,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        // App Info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Title and Beta Badge
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      app.name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                        color: theme.colorScheme.onSurface,
-                                      ),
-                                    ),
-                                  ),
-                                  if (isTesting)
-                                    Container(
-                                      margin: const EdgeInsets.only(left: 6),
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.orange.withValues(alpha: 0.5)),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.science_rounded, size: 10, color: Colors.orange[700]),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            'Beta',
-                                            style: TextStyle(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.orange[700],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              // Description
-                              Text(
-                                app.description,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          '1-click request unlocks all beta apps',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Trailing Icon
-                        Icon(
-                          isTesting ? Icons.lock_outline_rounded : Icons.arrow_forward_ios_rounded,
-                          size: 16,
-                          color: isTesting ? Colors.orange[600] : theme.colorScheme.onSurfaceVariant,
                         ),
                       ],
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary,
+                    foregroundColor: theme.colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 1,
+                  ),
+                  onPressed: () {
+                    AppTestingGateSheet.show(context);
+                  },
+                  icon: const Icon(Icons.send_rounded, size: 15),
+                  label: const Text(
+                    'Request Access',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
+            ],
+          ),
+        ),
+
+        // Apps List
+        appsAsync.when(
+          data: (apps) {
+            if (apps.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.0),
+                child: Center(
+                  child: Text(
+                    'No apps available.',
+                    style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+                  ),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: apps.length,
+              itemBuilder: (context, index) {
+                final app = apps[index];
+                final isTesting = app.mode == 'testing';
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => _launchUrl(context, app.playStoreUrl),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Row(
+                          children: [
+                            // App Icon
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                imageUrl: app.imageUrl,
+                                width: 46,
+                                height: 46,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  width: 46,
+                                  height: 46,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  width: 46,
+                                  height: 46,
+                                  color: theme.colorScheme.primaryContainer,
+                                  child: Icon(
+                                    Icons.apps_rounded,
+                                    color: theme.colorScheme.primary,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // App Title & Beta Tag
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          app.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: theme.colorScheme.onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isTesting) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber.shade500.withValues(alpha: 0.18),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(
+                                              color: Colors.amber.shade700.withValues(alpha: 0.4),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.science_rounded, size: 10, color: Colors.amber.shade800),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                'Beta',
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.amber.shade900,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  if (app.description.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      app.description,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Trailing Play Store Link Icon
+                            Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.open_in_new_rounded,
+                                size: 15,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
           },
-        );
-      },
-      loading: () => _buildLoadingSkeleton(),
-      error: (error, stackTrace) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Column(
-          children: [
-            const Text(
-              'Failed to load apps.',
-              style: TextStyle(color: Colors.red),
+          loading: () => _buildLoadingSkeleton(),
+          error: (error, stackTrace) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Column(
+              children: [
+                const Text(
+                  'Failed to load apps.',
+                  style: TextStyle(color: Colors.red),
+                ),
+                const SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(activeAppsStreamProvider);
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () {
-                ref.invalidate(activeAppsStreamProvider);
-              },
-              child: const Text('Retry'),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -217,18 +316,18 @@ class MoreAppsListWidget extends ConsumerWidget {
       itemCount: 2,
       itemBuilder: (context, index) {
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+          padding: const EdgeInsets.only(bottom: 8.0),
           child: Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               color: Colors.grey[200],
             ),
             child: Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 46,
+                  height: 46,
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
                     borderRadius: BorderRadius.circular(10),
@@ -261,11 +360,11 @@ class MoreAppsListWidget extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  width: 16,
-                  height: 16,
+                  width: 24,
+                  height: 24,
                   decoration: BoxDecoration(
                     color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],

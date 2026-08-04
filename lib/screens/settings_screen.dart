@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 
 import '../services/settings_service.dart';
-import '../services/transaction_service.dart';
+import '../services/app_lock_service.dart';
 import 'backup_settings_screen.dart';
+import 'app_lock_screen.dart';
+import '../features/more_apps/presentation/widgets/more_apps_list_widget.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,7 +19,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsService = Provider.of<SettingsService>(context);
-    final transactionService = Provider.of<TransactionService>(context);
     final textTheme = Theme.of(context).textTheme;
 
     final List<Map<String, String>> defaultCurrencies = [
@@ -36,89 +38,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final Set<String> seenSymbols = {};
     final allCurrencies = <Map<String, String>>[];
-    
-    for (var c in [...defaultCurrencies, ...settingsService.customCurrencies]) {
-      if (!seenSymbols.contains(c['symbol'])) {
-        seenSymbols.add(c['symbol']!);
+
+    for (var c in defaultCurrencies) {
+      if (seenSymbols.add(c['symbol']!)) {
         allCurrencies.add(c);
       }
     }
 
-    bool isCurrentSymbolInList = allCurrencies.any(
-      (c) => c['symbol'] == settingsService.currencySymbol,
-    );
+    for (var c in settingsService.customCurrencies) {
+      if (seenSymbols.add(c['symbol']!)) {
+        allCurrencies.add(c);
+      }
+    }
+
+    if (!seenSymbols.contains(settingsService.currencySymbol)) {
+      allCurrencies.add({
+        'name': 'Custom Currency',
+        'symbol': settingsService.currencySymbol,
+      });
+    }
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        scrolledUnderElevation: 0,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        title: const Text('Settings'),
         elevation: 0,
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: Theme.of(context).brightness == Brightness.light 
-                ? const Color(0xFF006D5B)
-                : const Color(0xFF00D084),
-            fontSize: 20,
-          ),
-        ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: <Widget>[
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'General',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildCurrencySetting(
-                    context,
-                    settingsService,
-                    allCurrencies,
-                    isCurrentSymbolInList,
-                  ),
-                  const SizedBox(height: 24),
-                  _buildThemeSetting(context, settingsService),
-                  const SizedBox(height: 24),
-                  _buildBackupSetting(context),
-                ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'General Settings',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('About'),
-              subtitle: const Text('Version 1.0.0'),
-              onTap: () {
-                // Show about dialog
-                showAboutDialog(
-                  context: context,
-                  applicationName: 'Cash Book',
-                  applicationVersion: '1.0.0',
-                  applicationLegalese: '© 2024 Your Company',
-                  children: <Widget>[
-                    const SizedBox(height: 15),
-                    const Text(
-                      'A simple app to manage your daily income and expenses.',
+            const SizedBox(height: 14),
+            _buildCurrencySetting(context, settingsService, allCurrencies),
+            const SizedBox(height: 20),
+            _buildThemeSetting(context, settingsService),
+            const SizedBox(height: 20),
+            _buildBackupSetting(context),
+            const SizedBox(height: 20),
+            _buildSecuritySetting(context),
+
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+
+            Text(
+              'More Apps',
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const MoreAppsListWidget(),
+
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 8),
+
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final version = snapshot.data != null
+                    ? 'Version ${snapshot.data!.version} (${snapshot.data!.buildNumber})'
+                    : 'Version 1.1.0';
+
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    child: Icon(
+                      Icons.info_outline_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text('About Cash Book'),
+                  subtitle: Text(version),
+                  onTap: () {
+                    showAboutDialog(
+                      context: context,
+                      applicationName: 'Cash Book',
+                      applicationVersion: snapshot.data?.version ?? '1.1.0',
+                      applicationLegalese: '© 2024 Your Company',
+                      children: <Widget>[
+                        const SizedBox(height: 15),
+                        const Text(
+                          'A simple app to manage your daily income and expenses.',
+                        ),
+                      ],
+                    );
+                  },
                 );
               },
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
@@ -127,72 +153,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     BuildContext context,
     SettingsService settingsService,
     List<Map<String, String>> currencies,
-    bool isCurrentSymbolInList,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Default Currency',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text('Currency', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: isCurrentSymbolInList
-              ? settingsService.currencySymbol
-              : currencies.first['symbol'],
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.payments_outlined),
-            border: OutlineInputBorder(),
-          ),
-          onChanged: (String? newSymbol) async {
-            if (newSymbol == 'ADD_NEW') {
-              _showAddCurrencyDialog(context, settingsService);
-              return;
-            }
-            if (newSymbol != null) {
-              try {
-                await settingsService.setCurrency(newSymbol);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Currency updated successfully'),
-                      duration: Duration(seconds: 2),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: settingsService.currencySymbol,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
+                items: currencies.map((c) {
+                  return DropdownMenuItem<String>(
+                    value: c['symbol'],
+                    child: Text(
+                      '${c['name']} (${c['symbol']})',
+                      overflow: TextOverflow.ellipsis,
                     ),
                   );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Error: ${settingsService.error ?? e.toString()}',
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            }
-          },
-          items: [
-            ...currencies.map<DropdownMenuItem<String>>((
-              Map<String, String> currency,
-            ) {
-              return DropdownMenuItem<String>(
-                value: currency['symbol'],
-                child: Text('${currency['name']} (${currency['symbol']})'),
-              );
-            }),
-            const DropdownMenuItem<String>(
-              value: 'ADD_NEW',
-              child: Row(
-                children: [
-                  Icon(Icons.add_rounded, size: 20, color: Color(0xFF00D084)),
-                  SizedBox(width: 8),
-                  Text('Add Custom...', style: TextStyle(color: Color(0xFF00D084), fontWeight: FontWeight.bold)),
-                ],
+                }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    settingsService.setCurrency(value);
+                  }
+                },
               ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.add),
+              onPressed: () => _showAddCurrencyDialog(context, settingsService),
+              tooltip: 'Add Custom Currency',
             ),
           ],
         ),
@@ -200,44 +197,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeSetting(
-    BuildContext context,
-    SettingsService settingsService,
-  ) {
+  Widget _buildThemeSetting(BuildContext context, SettingsService settingsService) {
+    final theme = Theme.of(context);
+    final currentTheme = settingsService.theme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Theme', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
+        Text('App Theme', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 10),
         Container(
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            border: Border.all(color: Theme.of(context).dividerColor),
-            borderRadius: BorderRadius.circular(8),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
+          child: Row(
             children: [
               _buildThemeOption(
                 context,
-                settingsService,
-                'light',
-                'Light',
-                Icons.light_mode,
+                title: 'System',
+                icon: Icons.brightness_auto_rounded,
+                value: 'system',
+                currentValue: currentTheme,
+                onTap: () => settingsService.setTheme('system'),
               ),
-              const Divider(height: 1),
               _buildThemeOption(
                 context,
-                settingsService,
-                'dark',
-                'Dark',
-                Icons.dark_mode,
+                title: 'Light',
+                icon: Icons.light_mode_rounded,
+                value: 'light',
+                currentValue: currentTheme,
+                onTap: () => settingsService.setTheme('light'),
               ),
-              const Divider(height: 1),
               _buildThemeOption(
                 context,
-                settingsService,
-                'system',
-                'System',
-                Icons.brightness_auto,
+                title: 'Dark',
+                icon: Icons.dark_mode_rounded,
+                value: 'dark',
+                currentValue: currentTheme,
+                onTap: () => settingsService.setTheme('dark'),
               ),
             ],
           ),
@@ -247,96 +246,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeOption(
-    BuildContext context,
-    SettingsService settingsService,
-    String value,
-    String title,
-    IconData icon,
-  ) {
-    final isSelected = settingsService.theme == value;
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String value,
+    required String currentValue,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = value == currentValue;
+    final theme = Theme.of(context);
 
-    return InkWell(
-      onTap: () async {
-        await _updateTheme(context, settingsService, value, title);
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-              : Colors.transparent,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 5),
+              Text(
                 title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurface,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle,
-                color: Theme.of(context).colorScheme.primary,
-                size: 20,
-              )
-            else
-              Icon(
-                Icons.radio_button_unchecked,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                size: 20,
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _updateTheme(
-    BuildContext context,
-    SettingsService settingsService,
-    String newTheme,
-    String themeName,
-  ) async {
-    try {
-      await settingsService.setTheme(newTheme);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Theme changed to $themeName'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${settingsService.error ?? e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _showAddCurrencyDialog(
-    BuildContext context,
-    SettingsService settingsService,
-  ) {
+  void _showAddCurrencyDialog(BuildContext context, SettingsService settingsService) {
     final nameController = TextEditingController();
     final symbolController = TextEditingController();
     final formKey = GlobalKey<FormState>();
@@ -353,16 +318,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               TextFormField(
                 controller: nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Currency Name (e.g. BTC)',
+                  labelText: 'Currency Name',
+                  hintText: 'e.g. Bitcoin',
                 ),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Required' : null,
+                validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
               ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: symbolController,
-                decoration: const InputDecoration(labelText: 'Symbol (e.g. ₿)'),
-                validator: (val) =>
-                    val == null || val.isEmpty ? 'Required' : null,
+                decoration: const InputDecoration(
+                  labelText: 'Symbol',
+                  hintText: 'e.g. BTC',
+                ),
+                validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
               ),
             ],
           ),
@@ -394,7 +362,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 24),
         Text('Data Management', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         ListTile(
@@ -402,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           leading: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -423,6 +390,149 @@ class _SettingsScreenState extends State<SettingsScreen> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSecuritySetting(BuildContext context) {
+    final lockService = Provider.of<AppLockService>(context);
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Security & App Lock', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 8),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.security_rounded,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
+          ),
+          title: const Text('App Lock'),
+          subtitle: Text(
+            lockService.isLockEnabled
+                ? 'Protected with ${lockService.lockType.toUpperCase()}'
+                : 'Protect app with PIN, Pattern, or Fingerprint',
+          ),
+          value: lockService.isLockEnabled,
+          onChanged: (bool enabled) async {
+            if (enabled) {
+              if (!lockService.hasPin && !lockService.hasPattern) {
+                _showLockTypeSetupSheet(context, lockService);
+              } else {
+                await lockService.setLockEnabled(true);
+              }
+            } else {
+              await lockService.setLockEnabled(false);
+            }
+          },
+        ),
+        if (lockService.isLockEnabled) ...[
+          const Divider(height: 16),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              lockService.lockType == 'pattern' ? Icons.pattern_rounded : Icons.pin_rounded,
+              color: theme.colorScheme.primary,
+            ),
+            title: const Text('Lock Method'),
+            subtitle: Text(lockService.lockType == 'pattern' ? 'Pattern Lock' : '4-Digit PIN Code'),
+            trailing: OutlinedButton(
+              onPressed: () => _showLockTypeSetupSheet(context, lockService),
+              child: const Text('Change'),
+            ),
+          ),
+          FutureBuilder<bool>(
+            future: lockService.canCheckBiometrics(),
+            builder: (context, snapshot) {
+              if (snapshot.data != true) return const SizedBox.shrink();
+
+              return SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                secondary: Icon(
+                  Icons.fingerprint_rounded,
+                  color: theme.colorScheme.primary,
+                ),
+                title: const Text('Unlock with Fingerprint'),
+                subtitle: const Text('Use biometrics for fast 1-touch unlock'),
+                value: lockService.isBiometricEnabled,
+                onChanged: (bool value) {
+                  lockService.setBiometricEnabled(value);
+                },
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _showLockTypeSetupSheet(BuildContext context, AppLockService lockService) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Choose Lock Method',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Select how you want to lock and protect Cash Book.'),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.pin_rounded, size: 28),
+                title: const Text('4-Digit PIN Code'),
+                subtitle: const Text('Enter a numeric 4-digit code'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const AppLockScreen(
+                        mode: AppLockMode.createPin,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.pattern_rounded, size: 28),
+                title: const Text('Pattern Lock'),
+                subtitle: const Text('Draw a 3x3 dot pattern'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const AppLockScreen(
+                        mode: AppLockMode.createPattern,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
     );
   }
 }

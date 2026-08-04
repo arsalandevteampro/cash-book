@@ -4,13 +4,14 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../services/google_drive_service.dart';
 import '../../../more_apps/data/models/app_model.dart';
 import '../../data/models/access_request_model.dart';
+import '../../services/access_request_rate_limiter.dart';
 import '../providers/app_config_providers.dart';
 
 class AppTestingGateSheet extends ConsumerStatefulWidget {
-  final AppModel app;
-  const AppTestingGateSheet({super.key, required this.app});
+  final AppModel? app;
+  const AppTestingGateSheet({super.key, this.app});
 
-  static Future<void> show(BuildContext context, AppModel app) {
+  static Future<void> show(BuildContext context, [AppModel? app]) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -30,11 +31,20 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
   bool _isSubmitting = false;
   bool _isGoogleSigningIn = false;
   bool _isEditingAfterApproval = false;
+  String? _rateLimitError;
 
   @override
   void initState() {
     super.initState();
     _checkSilentSignIn();
+    _checkRateLimit();
+  }
+
+  Future<void> _checkRateLimit() async {
+    final limitError = await AccessRequestRateLimiter.checkRateLimit();
+    if (mounted) {
+      setState(() => _rateLimitError = limitError);
+    }
   }
 
   Future<void> _checkSilentSignIn() async {
@@ -75,6 +85,9 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
     }
   }
 
+  String get _appId => widget.app?.id ?? 'cash-book';
+  String get _appName => widget.app?.name ?? 'All Beta Apps';
+
   Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
@@ -85,8 +98,8 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
       await ref.read(appConfigRepositoryProvider).submitAccessRequest(
             name,
             email,
-            widget.app.id,
-            widget.app.name,
+            _appId,
+            _appName,
           );
       await ref.read(userEmailProvider.notifier).setEmail(email);
 
@@ -100,10 +113,12 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMsg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit request: $e'),
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -136,8 +151,8 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final userEmail = ref.watch(userEmailProvider);
-    final requestAsync = ref.watch(appAccessRequestStreamProvider(widget.app.id));
-    final accessGrantedAsync = ref.watch(isSpecificAppAccessGrantedProvider(widget.app.id));
+    final requestAsync = ref.watch(appAccessRequestStreamProvider(_appId));
+    final accessGrantedAsync = ref.watch(isSpecificAppAccessGrantedProvider(_appId));
 
     final bool isApproved = accessGrantedAsync.value ?? false;
 
@@ -171,34 +186,45 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
             const SizedBox(height: 24),
             Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    widget.app.imageUrl,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                if (widget.app != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      widget.app!.imageUrl,
                       width: 48,
                       height: 48,
-                      color: theme.colorScheme.primaryContainer,
-                      child: Icon(Icons.apps_rounded, color: theme.colorScheme.primary),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 48,
+                        height: 48,
+                        color: theme.colorScheme.primaryContainer,
+                        child: Icon(Icons.apps_rounded, color: theme.colorScheme.primary),
+                      ),
                     ),
+                  )
+                else
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.science_rounded, color: theme.colorScheme.primary, size: 26),
                   ),
-                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.app.name,
+                        _appName,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Beta Testing Mode',
+                        'Beta Testing Access',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.orange[700],
                           fontWeight: FontWeight.bold,
@@ -249,27 +275,33 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                       style: theme.textTheme.bodySmall,
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                        ),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Download on Play Store'),
+                        onPressed: () => _launchUrl(widget.app?.playStoreUrl ?? ''),
                       ),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Download on Play Store'),
-                      onPressed: () => _launchUrl(widget.app.playStoreUrl),
                     ),
                     const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                        side: const BorderSide(color: Colors.green),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                          side: const BorderSide(color: Colors.green),
+                        ),
+                        icon: const Icon(Icons.edit_rounded),
+                        label: const Text('Change Request Details'),
+                        onPressed: () {
+                          setState(() => _isEditingAfterApproval = true);
+                        },
                       ),
-                      icon: const Icon(Icons.edit_rounded),
-                      label: const Text('Change Request Details'),
-                      onPressed: () {
-                        setState(() => _isEditingAfterApproval = true);
-                      },
                     ),
                   ],
                 ),
@@ -372,7 +404,12 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                           ),
                         ),
                       const SizedBox(width: 12),
-                      const Text('Sign in with Google to Check Access'),
+                      const Flexible(
+                        child: Text(
+                          'Sign in with Google to Check Access',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -394,7 +431,10 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                 ),
                 const SizedBox(height: 16),
               ],
-              _buildRequestForm(''),
+              if (_rateLimitError != null)
+                _buildRateLimitExceededCard()
+              else
+                _buildRequestForm(''),
             ],
 
             if (userEmail.isNotEmpty && !isApproved) ...[
@@ -569,6 +609,48 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                 : const Icon(Icons.send_rounded),
             label: const Text('Submit Request'),
             onPressed: _isSubmitting ? null : _submitRequest,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateLimitExceededCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade500.withValues(alpha: isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.amber.shade700.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.hourglass_top_rounded,
+            size: 44,
+            color: Colors.amber.shade800,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Daily Request Limit Reached',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.amber.shade300 : Colors.amber.shade900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Aap 24 ghanton mein 3 requests submit kar chuke hain. Aapka daily limit pura ho chuka hai. Baraye meharbani 24 ghanton ke baad dubara koshish karein.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

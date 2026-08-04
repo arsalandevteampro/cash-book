@@ -129,19 +129,31 @@ class DatabaseService {
         .toList();
   }
 
+  /// Create a top-level book (no parent)
   static Future<void> createBook(String name) async {
+    await createSubBook(name, parentId: null);
+  }
+
+  /// Create a book under [parentId]. If parentId is null, creates a root book.
+  /// After creation, automatically switches to the new book.
+  static Future<String> createSubBook(String name, {String? parentId}) async {
     final cleanName = name.trim();
-    if (cleanName.isEmpty) return;
+    if (cleanName.isEmpty) return '';
 
     final books = getAllBooks();
     final id = DateTime.now().millisecondsSinceEpoch.toString();
-    books.add({
+    final newBook = <String, dynamic>{
       'id': id,
       'name': cleanName,
       'createdAt': DateTime.now().millisecondsSinceEpoch,
-    });
+    };
+    if (parentId != null) {
+      newBook['parentId'] = parentId;
+    }
+    books.add(newBook);
     await updateSetting(_booksKey, books);
     await switchBook(id);
+    return id;
   }
 
   static Future<void> renameBook(String bookId, String name) async {
@@ -155,27 +167,81 @@ class DatabaseService {
     await updateSetting(_booksKey, books);
   }
 
+  /// Returns only the immediate children of [parentId].
+  static List<Map<String, dynamic>> getDirectSubBooks(String parentId) {
+    return getAllBooks()
+        .where((b) => b['parentId'] == parentId)
+        .toList();
+  }
+
+  /// Returns ids of [bookId] and all its descendant books recursively.
+  static List<String> getAllDescendantIds(String bookId) {
+    final result = <String>[bookId];
+    final direct = getDirectSubBooks(bookId);
+    for (final child in direct) {
+      result.addAll(getAllDescendantIds(child['id'] as String));
+    }
+    return result;
+  }
+
+  /// Returns the chain of book maps from root down to [bookId] (breadcrumb).
+  static List<Map<String, dynamic>> getBookPath(String bookId) {
+    final all = getAllBooks();
+    final path = <Map<String, dynamic>>[];
+    String? current = bookId;
+    while (current != null) {
+      final book = all.firstWhere(
+        (b) => b['id'] == current,
+        orElse: () => <String, dynamic>{},
+      );
+      if (book.isEmpty) break;
+      path.insert(0, book);
+      current = book['parentId'] as String?;
+    }
+    return path;
+  }
+
+  /// Returns root-level books (books with no parentId).
+  static List<Map<String, dynamic>> getRootBooks() {
+    return getAllBooks()
+        .where((b) => b['parentId'] == null || b['parentId'] == '')
+        .toList();
+  }
+
+  /// Deletes [bookId] and ALL its sub-books recursively.
   static Future<void> deleteBook(String bookId) async {
     final books = getAllBooks();
-    if (books.length <= 1) {
+    // We must keep at least one root book total
+    final rootBooks = getRootBooks();
+    final isRoot = !(books.firstWhere(
+          (b) => b['id'] == bookId,
+          orElse: () => <String, dynamic>{},
+        )['parentId'] != null);
+    if (isRoot && rootBooks.length <= 1 && getDirectSubBooks(bookId).isEmpty) {
       throw Exception('At least one book is required.');
     }
-    final index = books.indexWhere((book) => book['id'] == bookId);
-    if (index < 0) return;
 
-    final isCurrent = getCurrentBookId() == bookId;
-    books.removeAt(index);
-    await updateSetting(_booksKey, books);
+    // Collect all ids to delete (this book + all descendants)
+    final idsToDelete = getAllDescendantIds(bookId);
+    final isCurrent = idsToDelete.contains(getCurrentBookId());
+
+    final remaining = books
+        .where((b) => !idsToDelete.contains(b['id'] as String))
+        .toList();
+    await updateSetting(_booksKey, remaining);
 
     if (isCurrent) {
-      final fallbackBookId = books.first['id'] as String? ?? _defaultBookId;
-      await switchBook(fallbackBookId);
+      final fallback = remaining.isNotEmpty ? remaining.first['id'] as String : _defaultBookId;
+      await switchBook(fallback);
     }
 
-    final box = _transactionsBoxes.remove(bookId);
-    await box?.close();
-    await Hive.deleteBoxFromDisk('$_transactionsBoxPrefix$bookId');
-    await _goalsBox!.delete('current_goals_$bookId');
+    // Delete each book's storage
+    for (final id in idsToDelete) {
+      final box = _transactionsBoxes.remove(id);
+      await box?.close();
+      await Hive.deleteBoxFromDisk('$_transactionsBoxPrefix$id');
+      await _goalsBox!.delete('current_goals_$id');
+    }
   }
 
   static Future<void> switchBook(String bookId) async {
@@ -289,6 +355,23 @@ class DatabaseService {
     }
   }
 
+  static Future<void> updateCustomCategory(String oldCategory, String newCategory) async {
+    final categories = getCustomCategories();
+    final index = categories.indexOf(oldCategory);
+    if (index != -1) {
+      categories[index] = newCategory;
+      await updateSetting('customCategories', categories);
+    }
+  }
+
+  static Future<void> deleteCustomCategory(String category) async {
+    final categories = getCustomCategories();
+    if (categories.contains(category)) {
+      categories.remove(category);
+      await updateSetting('customCategories', categories);
+    }
+  }
+
   static List<String> getCustomPaymentMethods() {
     final settings = _settingsBox!.get(_preferencesKey);
     return List<String>.from(settings?['customPaymentMethods'] ?? []);
@@ -298,6 +381,23 @@ class DatabaseService {
     final methods = getCustomPaymentMethods();
     if (!methods.contains(paymentMethod)) {
       methods.add(paymentMethod);
+      await updateSetting('customPaymentMethods', methods);
+    }
+  }
+
+  static Future<void> updateCustomPaymentMethod(String oldMethod, String newMethod) async {
+    final methods = getCustomPaymentMethods();
+    final index = methods.indexOf(oldMethod);
+    if (index != -1) {
+      methods[index] = newMethod;
+      await updateSetting('customPaymentMethods', methods);
+    }
+  }
+
+  static Future<void> deleteCustomPaymentMethod(String paymentMethod) async {
+    final methods = getCustomPaymentMethods();
+    if (methods.contains(paymentMethod)) {
+      methods.remove(paymentMethod);
       await updateSetting('customPaymentMethods', methods);
     }
   }

@@ -20,6 +20,13 @@ class TransactionService with ChangeNotifier {
     if (book.isEmpty) return 'My Book';
     return (book.first['name'] as String?) ?? 'My Book';
   }
+
+  /// Breadcrumb path for the current book, e.g. [Main, Business, Store 1]
+  List<Map<String, dynamic>> get currentBookPath =>
+      DatabaseService.getBookPath(_currentBookId);
+
+  /// Root-level books only
+  List<Map<String, dynamic>> get rootBooks => DatabaseService.getRootBooks();
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -184,6 +191,20 @@ class TransactionService with ChangeNotifier {
       _setError('Failed to create book: $e');
     }
   }
+
+  /// Create a sub-book under [parentId].
+  Future<void> createSubBook(String name, {required String parentId}) async {
+    try {
+      await DatabaseService.createSubBook(name, parentId: parentId);
+      await initialize();
+    } catch (e) {
+      _setError('Failed to create sub-book: $e');
+    }
+  }
+
+  /// Get direct children of [parentId].
+  List<Map<String, dynamic>> getDirectSubBooks(String parentId) =>
+      DatabaseService.getDirectSubBooks(parentId);
 
   Future<void> switchBook(String bookId) async {
     try {

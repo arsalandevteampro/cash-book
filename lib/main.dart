@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider_pkg;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
+import 'features/app_config/presentation/screens/testing_gate_screen.dart';
 import 'screens/splash_screen.dart';
 import 'services/transaction_service.dart';
 import 'services/settings_service.dart';
 import 'services/goals_service.dart';
+import 'services/app_lock_service.dart';
 import 'services/database_service.dart';
+import 'widgets/app_lock_wrapper.dart';
 import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await DatabaseService.initialize();
-  runApp(const MyApp());
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase initialization failed: $e");
+  }
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -19,20 +32,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return provider_pkg.MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (ctx) => TransactionService()),
-        ChangeNotifierProvider(create: (ctx) => SettingsService()),
-        ChangeNotifierProvider(create: (ctx) => GoalsService()),
+        provider_pkg.ChangeNotifierProvider(create: (ctx) => TransactionService()),
+        provider_pkg.ChangeNotifierProvider(create: (ctx) => SettingsService()),
+        provider_pkg.ChangeNotifierProvider(create: (ctx) => GoalsService()),
+        provider_pkg.ChangeNotifierProvider(create: (ctx) => AppLockService()),
       ],
-      child: Consumer<SettingsService>(
+      child: provider_pkg.Consumer<SettingsService>(
         builder: (context, settingsService, child) {
           return MaterialApp(
             title: 'Cash Book',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: _getThemeMode(settingsService.theme),
-            home: const SplashScreen(),
+            builder: (context, childWidget) {
+              return AppLockWrapper(
+                child: childWidget ?? const SizedBox.shrink(),
+              );
+            },
+            home: const TestingGateScreen(child: SplashScreen()),
             debugShowCheckedModeBanner: false,
           );
         },

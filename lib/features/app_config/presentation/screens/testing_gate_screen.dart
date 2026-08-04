@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../services/google_drive_service.dart';
 import '../../data/models/access_request_model.dart';
+import '../../services/access_request_rate_limiter.dart';
 import '../providers/app_config_providers.dart';
 
 class TestingGateScreen extends ConsumerStatefulWidget {
@@ -19,11 +20,20 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
   bool _isSubmitting = false;
   bool _isGoogleSigningIn = false;
   bool _isEditingAfterApproval = false;
+  String? _rateLimitError;
 
   @override
   void initState() {
     super.initState();
     _checkSilentSignIn();
+    _checkRateLimit();
+  }
+
+  Future<void> _checkRateLimit() async {
+    final limitError = await AccessRequestRateLimiter.checkRateLimit();
+    if (mounted) {
+      setState(() => _rateLimitError = limitError);
+    }
   }
 
   Future<void> _checkSilentSignIn() async {
@@ -89,10 +99,12 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final errorMsg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit request: $e'),
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -262,7 +274,12 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
                             ),
                           ),
                         const SizedBox(width: 12),
-                        const Text('Sign in with Google to Check Access'),
+                        const Flexible(
+                          child: Text(
+                            'Sign in with Google to Check Access',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -285,8 +302,11 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
                   const SizedBox(height: 20),
                 ],
 
-                // Request Form
-                _buildRequestForm(),
+                // Request Form or Rate Limit Exceeded Card
+                if (_rateLimitError != null)
+                  _buildRateLimitExceededCard()
+                else
+                  _buildRequestForm(),
                 
                 if (userEmail.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -452,6 +472,48 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
                 : const Icon(Icons.send_rounded),
             label: const Text('Submit Request'),
             onPressed: _isSubmitting ? null : _submitRequest,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRateLimitExceededCard() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade500.withValues(alpha: isDark ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.amber.shade700.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.hourglass_top_rounded,
+            size: 44,
+            color: Colors.amber.shade800,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Daily Request Limit Reached',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.amber.shade300 : Colors.amber.shade900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Aap 24 ghanton mein 3 requests submit kar chuke hain. Aapka daily limit pura ho chuka hai. Baraye meharbani 24 ghanton ke baad dubara koshish karein.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),

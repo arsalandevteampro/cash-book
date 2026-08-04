@@ -163,6 +163,60 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     );
   }
 
+  Future<void> _showEditDialog(String title, String initialValue, Function(String) onUpdate) async {
+    final controller = TextEditingController(text: initialValue);
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit $title'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(hintText: 'Enter $title name'),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                onUpdate(controller.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showDeleteConfirmDialog(String title, String name, VoidCallback onDelete) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete $title'),
+        content: Text('Are you sure you want to delete "$name"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              onDelete();
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   IconData _getPaymentMethodIcon(PaymentMethod method) {
     switch (method) {
       case PaymentMethod.cash:
@@ -280,13 +334,10 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
               TextFormField(
                 initialValue: _title,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Title',
                   hintText: 'What did you spend on?',
-                  prefixIcon: const Icon(Icons.edit_note_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  prefixIcon: Icon(Icons.edit_note_rounded),
                 ),
                 style: const TextStyle(fontWeight: FontWeight.w600),
                 validator: (value) => (value == null || value.isEmpty)
@@ -303,9 +354,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   hintText: '0.00',
                   prefixIcon: const Icon(Icons.account_balance_wallet_rounded),
                   suffixText: settingsService.currencySymbol,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
                 ),
                 style: const TextStyle(
                   fontWeight: FontWeight.w900,
@@ -339,18 +387,73 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: categories.contains(_category) ? _category : null,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Category',
-                  prefixIcon: const Icon(Icons.category_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  prefixIcon: Icon(Icons.category_rounded),
                 ),
                 items: [
                   ...categories.map(
-                    (String value) =>
-                        DropdownMenuItem(value: value, child: Text(value)),
+                    (String value) => DropdownMenuItem(
+                      value: value,
+                      child: Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              value,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (settingsService.customCategories.contains(value))
+                            PopupMenuButton<String>(
+                              icon: const Icon(Icons.more_vert, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 100,
+                                maxWidth: 150,
+                              ),
+                              onSelected: (action) {
+                                if (action == 'edit') {
+                                  _showEditDialog('Category', value, (newVal) async {
+                                    await settingsService.updateCustomCategory(value, newVal);
+                                    setState(() => _category = newVal);
+                                  });
+                                } else if (action == 'delete') {
+                                  _showDeleteConfirmDialog('Category', value, () async {
+                                    await settingsService.deleteCustomCategory(value);
+                                    if (_category == value) {
+                                      setState(() => _category = 'General');
+                                    }
+                                  });
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 18, color: Colors.orange),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, size: 18, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Delete'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
                   ),
                   const DropdownMenuItem(
                     value: 'ADD_NEW',
@@ -389,15 +492,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField<dynamic>(
+                isExpanded: true,
                 initialValue: _paymentMethod == PaymentMethod.other
                     ? _customPaymentMethod
                     : _paymentMethod,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Payment Method',
-                  prefixIcon: const Icon(Icons.payments_rounded),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+                  prefixIcon: Icon(Icons.payments_rounded),
                 ),
                 items: [
                   ...PaymentMethod.values
@@ -429,7 +530,63 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                             color: Colors.grey.shade700,
                           ),
                           const SizedBox(width: 12),
-                          Text(method),
+                          Flexible(
+                            child: Text(
+                              method,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            icon: const Icon(Icons.more_vert, size: 20),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 100,
+                              maxWidth: 150,
+                            ),
+                            onSelected: (action) {
+                              if (action == 'edit') {
+                                _showEditDialog('Payment Method', method, (newVal) async {
+                                  await settingsService.updateCustomPaymentMethod(method, newVal);
+                                  setState(() {
+                                    _paymentMethod = PaymentMethod.other;
+                                    _customPaymentMethod = newVal;
+                                  });
+                                });
+                              } else if (action == 'delete') {
+                                _showDeleteConfirmDialog('Payment Method', method, () async {
+                                  await settingsService.deleteCustomPaymentMethod(method);
+                                  if (_customPaymentMethod == method) {
+                                    setState(() {
+                                      _paymentMethod = PaymentMethod.cash;
+                                      _customPaymentMethod = null;
+                                    });
+                                  }
+                                });
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit, size: 18, color: Colors.orange),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, size: 18, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
@@ -489,9 +646,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Theme.of(context).brightness == Brightness.light
-                        ? const Color(0xFFF1F4F2)
-                        : Colors.white.withOpacity(0.05),
+                        ? Colors.white
+                        : const Color(0xFF1E293B),
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.light
+                          ? const Color(0xFFCBD5E1)
+                          : const Color(0xFF334155),
+                      width: 1.5,
+                    ),
                   ),
                   child: Row(
                     children: [

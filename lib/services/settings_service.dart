@@ -167,8 +167,32 @@ class SettingsService with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateCustomCategory(String oldCategory, String newCategory) async {
+    await DatabaseService.updateCustomCategory(oldCategory, newCategory);
+    _customCategories = DatabaseService.getCustomCategories();
+    notifyListeners();
+  }
+
+  Future<void> deleteCustomCategory(String category) async {
+    await DatabaseService.deleteCustomCategory(category);
+    _customCategories = DatabaseService.getCustomCategories();
+    notifyListeners();
+  }
+
   Future<void> addCustomPaymentMethod(String paymentMethod) async {
     await DatabaseService.addCustomPaymentMethod(paymentMethod);
+    _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
+    notifyListeners();
+  }
+
+  Future<void> updateCustomPaymentMethod(String oldMethod, String newMethod) async {
+    await DatabaseService.updateCustomPaymentMethod(oldMethod, newMethod);
+    _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
+    notifyListeners();
+  }
+
+  Future<void> deleteCustomPaymentMethod(String paymentMethod) async {
+    await DatabaseService.deleteCustomPaymentMethod(paymentMethod);
     _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
     notifyListeners();
   }
