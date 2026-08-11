@@ -496,6 +496,53 @@ class ReportExportService {
     );
   }
 
+  static Future<String> exportAndDownload({
+    required ReportFormat format,
+    required ReportType reportType,
+    required String bookName,
+    required String currencySymbol,
+    required List<Transaction> transactions,
+    required DateTime periodStart,
+    DateTime? periodEnd,
+    String Function(double amount)? formatCurrency,
+  }) async {
+    final summary = summarize(transactions);
+
+    late final String fileName;
+    late final Uint8List bytes;
+
+    if (format == ReportFormat.csv) {
+      final csv = buildCsv(
+        reportType: reportType,
+        bookName: bookName,
+        currencySymbol: currencySymbol,
+        transactions: transactions,
+        summary: summary,
+        periodStart: periodStart,
+        periodEnd: periodEnd,
+      );
+      fileName = reportType == ReportType.daily
+          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.csv'
+          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.csv';
+      bytes = Uint8List.fromList(utf8.encode(csv));
+    } else {
+      bytes = await buildPdf(
+        reportType: reportType,
+        bookName: bookName,
+        currencySymbol: currencySymbol,
+        transactions: transactions,
+        summary: summary,
+        periodStart: periodStart,
+        formatCurrency: formatCurrency,
+      );
+      fileName = reportType == ReportType.daily
+          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.pdf'
+          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.pdf';
+    }
+
+    return saveReportFile(fileName: fileName, bytes: bytes);
+  }
+
   static String _csv(String value) {
     final escaped = value.replaceAll('"', '""');
     return '"$escaped"';

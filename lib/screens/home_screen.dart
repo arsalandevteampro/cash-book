@@ -23,6 +23,7 @@ import '../utils/transaction_filters.dart';
 import 'package:intl/intl.dart';
 import '../widgets/rating_dialog.dart';
 import '../services/rating_service.dart';
+import '../ads/banner_ad_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -318,6 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      bottomNavigationBar: const SafeArea(
+        top: false,
+        child: BannerAdWidget(),
+      ),
     );
   }
 
@@ -926,16 +931,17 @@ class _HomeScreenState extends State<HomeScreen> {
       ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
       ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
-    }.toList();
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    final payments = [
+    final payments = {
       'Cash',
       'Online',
       'Card',
       'Bank Transfer',
       'UPI',
       'Other',
-    ];
+      ...settingsService.customPaymentMethods,
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     showModalBottomSheet(
       context: context,

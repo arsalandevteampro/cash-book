@@ -37,7 +37,9 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
   DateTime _selectedDay = DateTime.now();
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
-  bool _isExporting = false;
+  bool _isDownloading = false;
+  bool _isSharing = false;
+  bool get _isExporting => _isDownloading || _isSharing;
 
   List<Transaction> get _transactions =>
       Provider.of<TransactionService>(context, listen: false).transactions;
@@ -74,11 +76,17 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
     }
   }
 
-  Future<void> _exportReport() async {
+  Future<void> _exportReport({required bool isShare}) async {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
 
-    setState(() => _isExporting = true);
+    setState(() {
+      if (isShare) {
+        _isSharing = true;
+      } else {
+        _isDownloading = true;
+      }
+    });
 
     try {
       final transactions = _previewTransactions;
@@ -90,28 +98,56 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
         formatCurrency: _settings.formatCurrency,
       );
 
-      if (_reportType == ReportType.daily) {
-        await ReportExportService.exportAndShare(
-          format: exportArgs.format,
-          reportType: ReportType.daily,
-          bookName: exportArgs.bookName,
-          currencySymbol: exportArgs.currencySymbol,
-          transactions: exportArgs.transactions,
-          periodStart: _selectedDay,
-          formatCurrency: exportArgs.formatCurrency,
-        );
+      String? savedPath;
+
+      if (isShare) {
+        if (_reportType == ReportType.daily) {
+          await ReportExportService.exportAndShare(
+            format: exportArgs.format,
+            reportType: ReportType.daily,
+            bookName: exportArgs.bookName,
+            currencySymbol: exportArgs.currencySymbol,
+            transactions: exportArgs.transactions,
+            periodStart: _selectedDay,
+            formatCurrency: exportArgs.formatCurrency,
+          );
+        } else {
+          final periodStart = DateTime(_selectedYear, _selectedMonth, 1);
+          await ReportExportService.exportAndShare(
+            format: exportArgs.format,
+            reportType: ReportType.monthly,
+            bookName: exportArgs.bookName,
+            currencySymbol: exportArgs.currencySymbol,
+            transactions: exportArgs.transactions,
+            periodStart: periodStart,
+            periodEnd: DateTime(_selectedYear, _selectedMonth + 1, 0),
+            formatCurrency: exportArgs.formatCurrency,
+          );
+        }
       } else {
-        final periodStart = DateTime(_selectedYear, _selectedMonth, 1);
-        await ReportExportService.exportAndShare(
-          format: exportArgs.format,
-          reportType: ReportType.monthly,
-          bookName: exportArgs.bookName,
-          currencySymbol: exportArgs.currencySymbol,
-          transactions: exportArgs.transactions,
-          periodStart: periodStart,
-          periodEnd: DateTime(_selectedYear, _selectedMonth + 1, 0),
-          formatCurrency: exportArgs.formatCurrency,
-        );
+        if (_reportType == ReportType.daily) {
+          savedPath = await ReportExportService.exportAndDownload(
+            format: exportArgs.format,
+            reportType: ReportType.daily,
+            bookName: exportArgs.bookName,
+            currencySymbol: exportArgs.currencySymbol,
+            transactions: exportArgs.transactions,
+            periodStart: _selectedDay,
+            formatCurrency: exportArgs.formatCurrency,
+          );
+        } else {
+          final periodStart = DateTime(_selectedYear, _selectedMonth, 1);
+          savedPath = await ReportExportService.exportAndDownload(
+            format: exportArgs.format,
+            reportType: ReportType.monthly,
+            bookName: exportArgs.bookName,
+            currencySymbol: exportArgs.currencySymbol,
+            transactions: exportArgs.transactions,
+            periodStart: periodStart,
+            periodEnd: DateTime(_selectedYear, _selectedMonth + 1, 0),
+            formatCurrency: exportArgs.formatCurrency,
+          );
+        }
       }
 
       if (!mounted) {
@@ -120,20 +156,29 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
 
       navigator.pop();
       messenger.showSnackBar(
-        const SnackBar(content: Text('Report exported successfully')),
+        SnackBar(
+          content: Text(
+            isShare
+                ? 'Report shared successfully'
+                : 'Report downloaded successfully: ${savedPath ?? ''}',
+          ),
+        ),
       );
     } catch (error) {
       if (mounted) {
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Failed to export report: $error'),
+            content: Text('Failed to ${isShare ? 'share' : 'download'} report: $error'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isExporting = false);
+        setState(() {
+          _isDownloading = false;
+          _isSharing = false;
+        });
       }
     }
   }
@@ -340,29 +385,63 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
               ),
             ),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isExporting ? null : _exportReport,
-                icon: _isExporting
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.ios_share_rounded),
-                label: Text(
-                  _isExporting
-                      ? 'Exporting...'
-                      : 'Export & Share ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
-                ),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _isExporting ? null : () => _exportReport(isShare: false),
+                    icon: _isDownloading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.file_download_rounded),
+                    label: Text(
+                      _isDownloading
+                          ? 'Downloading...'
+                          : 'Download ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Color(0xFF006D5B), width: 1.5),
+                      foregroundColor: const Color(0xFF006D5B),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: _isExporting ? null : () => _exportReport(isShare: true),
+                    icon: _isSharing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.share_rounded),
+                    label: Text(
+                      _isSharing
+                          ? 'Sharing...'
+                          : 'Share ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF006D5B),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

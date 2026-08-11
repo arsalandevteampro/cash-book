@@ -1289,19 +1289,21 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Widget _buildExtraFilters(SettingsService settingsService) {
-    final categories = {
-      'All',
+    final sortedCategories = {
       ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
       ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
-    }.toList();
-    final paymentMethods = [
-      'All',
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final categories = ['All', ...sortedCategories];
+
+    final sortedPaymentMethods = {
       ...PaymentMethod.values
           .where((m) => m != PaymentMethod.other)
           .map((e) => _getPaymentMethodLabel(e)),
+      'Other',
       ...settingsService.customPaymentMethods,
-    ];
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final paymentMethods = ['All', ...sortedPaymentMethods];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,

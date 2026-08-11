@@ -344,13 +344,16 @@ class DatabaseService {
   // Custom Lists operations
   static List<String> getCustomCategories() {
     final settings = _settingsBox!.get(_preferencesKey);
-    return List<String>.from(settings?['customCategories'] ?? []);
+    final list = List<String>.from(settings?['customCategories'] ?? []);
+    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
   }
 
   static Future<void> addCustomCategory(String category) async {
     final categories = getCustomCategories();
     if (!categories.contains(category)) {
       categories.add(category);
+      categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customCategories', categories);
     }
   }
@@ -360,6 +363,7 @@ class DatabaseService {
     final index = categories.indexOf(oldCategory);
     if (index != -1) {
       categories[index] = newCategory;
+      categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customCategories', categories);
     }
   }
@@ -368,19 +372,23 @@ class DatabaseService {
     final categories = getCustomCategories();
     if (categories.contains(category)) {
       categories.remove(category);
+      categories.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customCategories', categories);
     }
   }
 
   static List<String> getCustomPaymentMethods() {
     final settings = _settingsBox!.get(_preferencesKey);
-    return List<String>.from(settings?['customPaymentMethods'] ?? []);
+    final list = List<String>.from(settings?['customPaymentMethods'] ?? []);
+    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
   }
 
   static Future<void> addCustomPaymentMethod(String paymentMethod) async {
     final methods = getCustomPaymentMethods();
     if (!methods.contains(paymentMethod)) {
       methods.add(paymentMethod);
+      methods.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customPaymentMethods', methods);
     }
   }
@@ -390,6 +398,7 @@ class DatabaseService {
     final index = methods.indexOf(oldMethod);
     if (index != -1) {
       methods[index] = newMethod;
+      methods.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customPaymentMethods', methods);
     }
   }
@@ -398,6 +407,7 @@ class DatabaseService {
     final methods = getCustomPaymentMethods();
     if (methods.contains(paymentMethod)) {
       methods.remove(paymentMethod);
+      methods.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
       await updateSetting('customPaymentMethods', methods);
     }
   }

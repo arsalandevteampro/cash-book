@@ -263,9 +263,17 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
       ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
-    }.toList();
+    }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     final List<String> customPaymentMethods =
         settingsService.customPaymentMethods;
+
+    final paymentOptions = <({String label, dynamic value, bool isCustom, PaymentMethod? enumMethod})>[
+      ...PaymentMethod.values
+          .where((m) => m != PaymentMethod.other)
+          .map((m) => (label: _getPaymentMethodLabel(m), value: m, isCustom: false, enumMethod: m)),
+      ...customPaymentMethods
+          .map((m) => (label: m, value: m, isCustom: true, enumMethod: null)),
+    ]..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -492,126 +500,127 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               const SizedBox(height: 20),
 
               DropdownButtonFormField<dynamic>(
-                isExpanded: true,
-                initialValue: _paymentMethod == PaymentMethod.other
-                    ? _customPaymentMethod
-                    : _paymentMethod,
-                decoration: const InputDecoration(
-                  labelText: 'Payment Method',
-                  prefixIcon: Icon(Icons.payments_rounded),
-                ),
-                items: [
-                  ...PaymentMethod.values
-                      .where((m) => m != PaymentMethod.other)
-                      .map((PaymentMethod method) {
-                        return DropdownMenuItem(
-                          value: method,
-                          child: Row(
-                            children: [
-                              Icon(
-                                _getPaymentMethodIcon(method),
-                                size: 18,
-                                color: Colors.grey.shade700,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(_getPaymentMethodLabel(method)),
-                            ],
-                          ),
-                        );
+                    isExpanded: true,
+                    initialValue: _paymentMethod == PaymentMethod.other
+                        ? _customPaymentMethod
+                        : _paymentMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Method',
+                      prefixIcon: Icon(Icons.payments_rounded),
+                    ),
+                    items: [
+                      ...paymentOptions.map((opt) {
+                        if (!opt.isCustom) {
+                          final method = opt.enumMethod!;
+                          return DropdownMenuItem(
+                            value: method,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  _getPaymentMethodIcon(method),
+                                  size: 18,
+                                  color: Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(_getPaymentMethodLabel(method)),
+                              ],
+                            ),
+                          );
+                        } else {
+                          final method = opt.label;
+                          return DropdownMenuItem(
+                            value: method,
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.payment_rounded,
+                                  size: 18,
+                                  color: Colors.grey.shade700,
+                                ),
+                                const SizedBox(width: 12),
+                                Flexible(
+                                  child: Text(
+                                    method,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                PopupMenuButton<String>(
+                                  icon: const Icon(Icons.more_vert, size: 20),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 100,
+                                    maxWidth: 150,
+                                  ),
+                                  onSelected: (action) {
+                                    if (action == 'edit') {
+                                      _showEditDialog('Payment Method', method, (newVal) async {
+                                        await settingsService.updateCustomPaymentMethod(method, newVal);
+                                        setState(() {
+                                          _paymentMethod = PaymentMethod.other;
+                                          _customPaymentMethod = newVal;
+                                        });
+                                      });
+                                    } else if (action == 'delete') {
+                                      _showDeleteConfirmDialog('Payment Method', method, () async {
+                                        await settingsService.deleteCustomPaymentMethod(method);
+                                        if (_customPaymentMethod == method) {
+                                          setState(() {
+                                            _paymentMethod = PaymentMethod.cash;
+                                            _customPaymentMethod = null;
+                                          });
+                                        }
+                                      });
+                                    }
+                                  },
+                                  itemBuilder: (context) => [
+                                    const PopupMenuItem(
+                                      value: 'edit',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.edit, size: 18, color: Colors.orange),
+                                          SizedBox(width: 8),
+                                          Text('Edit'),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.delete, size: 18, color: Colors.red),
+                                          SizedBox(width: 8),
+                                          Text('Delete'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        }
                       }),
-                  ...customPaymentMethods.map(
-                    (String method) => DropdownMenuItem(
-                      value: method,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.payment_rounded,
-                            size: 18,
-                            color: Colors.grey.shade700,
-                          ),
-                          const SizedBox(width: 12),
-                          Flexible(
-                            child: Text(
-                              method,
-                              overflow: TextOverflow.ellipsis,
+                      const DropdownMenuItem(
+                        value: 'ADD_NEW',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.add_circle_outline,
+                              color: Colors.blue,
+                              size: 20,
                             ),
-                          ),
-                          PopupMenuButton<String>(
-                            icon: const Icon(Icons.more_vert, size: 20),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 100,
-                              maxWidth: 150,
+                            SizedBox(width: 8),
+                            Text(
+                              'Add New Method',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            onSelected: (action) {
-                              if (action == 'edit') {
-                                _showEditDialog('Payment Method', method, (newVal) async {
-                                  await settingsService.updateCustomPaymentMethod(method, newVal);
-                                  setState(() {
-                                    _paymentMethod = PaymentMethod.other;
-                                    _customPaymentMethod = newVal;
-                                  });
-                                });
-                              } else if (action == 'delete') {
-                                _showDeleteConfirmDialog('Payment Method', method, () async {
-                                  await settingsService.deleteCustomPaymentMethod(method);
-                                  if (_customPaymentMethod == method) {
-                                    setState(() {
-                                      _paymentMethod = PaymentMethod.cash;
-                                      _customPaymentMethod = null;
-                                    });
-                                  }
-                                });
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 18, color: Colors.orange),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete, size: 18, color: Colors.red),
-                                    SizedBox(width: 8),
-                                    Text('Delete'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                  const DropdownMenuItem(
-                    value: 'ADD_NEW',
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.add_circle_outline,
-                          color: Colors.blue,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'Add New Method',
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                    ],
                 onChanged: (dynamic newValue) {
                   if (newValue == 'ADD_NEW') {
                     _showAddNewDialog('Payment Method', (val) async {

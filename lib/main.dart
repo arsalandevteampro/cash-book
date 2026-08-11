@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'firebase_options.dart';
 
 import 'features/app_config/presentation/screens/testing_gate_screen.dart';
@@ -23,6 +24,11 @@ Future<void> main() async {
     );
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
+  }
+  try {
+    await MobileAds.instance.initialize();
+  } catch (e) {
+    debugPrint("Google Mobile Ads initialization failed: $e");
   }
   runApp(const ProviderScope(child: MyApp()));
 }
