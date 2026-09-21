@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 class SettingsService with ChangeNotifier {
   String _currencySymbol = 'Rs';
   String _theme = 'system';
+  String _defaultTransactionType = 'expense';
   bool _isLoading = false;
   String? _error;
   List<String> _customCategories = [];
@@ -15,6 +16,7 @@ class SettingsService with ChangeNotifier {
 
   String get currencySymbol => _currencySymbol;
   String get theme => _theme;
+  String get defaultTransactionType => _defaultTransactionType;
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<String> get customCategories => _customCategories;
@@ -30,6 +32,7 @@ class SettingsService with ChangeNotifier {
       // Load settings from Hive
       _currencySymbol = DatabaseService.getSetting<String>('currency') ?? 'Rs';
       _theme = DatabaseService.getSetting<String>('theme') ?? 'system';
+      _defaultTransactionType = DatabaseService.getSetting<String>('defaultTransactionType') ?? 'expense';
       _customCategories = DatabaseService.getCustomCategories();
       _customPaymentMethods = DatabaseService.getCustomPaymentMethods();
       _customCurrencies = DatabaseService.getCustomCurrencies();
@@ -88,6 +91,24 @@ class SettingsService with ChangeNotifier {
       _setError('Failed to update theme: $e');
       if (kDebugMode) {
         print('Error updating theme: $e');
+      }
+    }
+  }
+
+  Future<void> setDefaultTransactionType(String newType) async {
+    try {
+      await DatabaseService.updateSetting('defaultTransactionType', newType);
+      _defaultTransactionType = newType;
+      _setError(null);
+      notifyListeners();
+
+      if (kDebugMode) {
+        print('✅ Default transaction type updated: $newType');
+      }
+    } catch (e) {
+      _setError('Failed to update default transaction type: $e');
+      if (kDebugMode) {
+        print('Error updating default transaction type: $e');
       }
     }
   }

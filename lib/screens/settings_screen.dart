@@ -80,6 +80,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 20),
             _buildThemeSetting(context, settingsService),
             const SizedBox(height: 20),
+            _buildDefaultTransactionTypeSetting(context, settingsService),
+            const SizedBox(height: 20),
             _buildBackupSetting(context),
             const SizedBox(height: 20),
             _buildSecuritySetting(context),
@@ -292,6 +294,117 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   fontSize: 12,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                   color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDefaultTransactionTypeSetting(
+    BuildContext context,
+    SettingsService settingsService,
+  ) {
+    final theme = Theme.of(context);
+    final currentType = settingsService.defaultTransactionType;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Default Entry Type', style: theme.textTheme.titleMedium),
+            const SizedBox(width: 8),
+            Text(
+              '(For new transactions)',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              _buildTypeOption(
+                context,
+                title: 'Income',
+                icon: Icons.arrow_upward_rounded,
+                value: 'income',
+                currentValue: currentType,
+                activeColor: const Color(0xFF00D084),
+                onTap: () => settingsService.setDefaultTransactionType('income'),
+              ),
+              _buildTypeOption(
+                context,
+                title: 'Expense',
+                icon: Icons.arrow_downward_rounded,
+                value: 'expense',
+                currentValue: currentType,
+                activeColor: const Color(0xFFFF5F5F),
+                onTap: () => settingsService.setDefaultTransactionType('expense'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeOption(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required String value,
+    required String currentValue,
+    required Color activeColor,
+    required VoidCallback onTap,
+  }) {
+    final isSelected = value == currentValue;
+    final theme = Theme.of(context);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? activeColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: activeColor.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : theme.colorScheme.onSurfaceVariant,
                 ),
               ),
             ],

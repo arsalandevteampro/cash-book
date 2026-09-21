@@ -43,6 +43,20 @@ class TransactionService with ChangeNotifier {
       .where((tx) => tx.type == TransactionType.expense)
       .fold(0.0, (sum, item) => sum + item.amount);
 
+  /// Recent unique transaction titles sorted by recency (newest first).
+  List<String> get recentTitles {
+    final seen = <String>{};
+    final titles = <String>[];
+    for (final tx in _transactions) {
+      final t = tx.title.trim();
+      if (t.isNotEmpty && seen.add(t.toLowerCase())) {
+        titles.add(t);
+        if (titles.length >= 100) break;
+      }
+    }
+    return titles;
+  }
+
   // Initialize with Hive database
   Future<void> initialize() async {
     _setLoading(true);

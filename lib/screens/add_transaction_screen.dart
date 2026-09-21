@@ -29,6 +29,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   // Removed hardcoded list, using AppConstants.defaultCategories
 
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +52,20 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       _paymentMethod = PaymentMethod.cash;
       _category = 'General';
       _customPaymentMethod = null;
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      if (widget.transaction == null) {
+        final settingsService = Provider.of<SettingsService>(context, listen: false);
+        _type = settingsService.defaultTransactionType == 'income'
+            ? TransactionType.income
+            : TransactionType.expense;
+      }
+      _isInitialized = true;
     }
   }
 
@@ -258,11 +274,13 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final settingsService = Provider.of<SettingsService>(context);
+    final transactionService = Provider.of<TransactionService>(context, listen: false);
+    final recentTitles = transactionService.recentTitles;
 
     final List<String> categories = {
       ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
-      ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
+      ...transactionService.transactions.map((tx) => tx.category),
     }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     final List<String> customPaymentMethods =
         settingsService.customPaymentMethods;
@@ -312,19 +330,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   children: [
                     Expanded(
                       child: _buildTypeButton(
-                        'Expense',
-                        TransactionType.expense,
-                        const Color(0xFFFF5F5F), // Rose-red
-                        Icons.arrow_downward_rounded,
+                        'Income',
+                        TransactionType.income,
+                        const Color(0xFF00D084), // Emerald
+                        Icons.arrow_upward_rounded,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildTypeButton(
-                        'Income',
-                        TransactionType.income,
-                        const Color(0xFF00D084), // Emerald
-                        Icons.arrow_upward_rounded,
+                        'Expense',
+                        TransactionType.expense,
+                        const Color(0xFFFF5F5F), // Rose-red
+                        Icons.arrow_downward_rounded,
                       ),
                     ),
                   ],
@@ -340,18 +358,105 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               ),
               const SizedBox(height: 16),
 
-              TextFormField(
-                initialValue: _title,
-                decoration: const InputDecoration(
-                  labelText: 'Title',
-                  hintText: 'What did you spend on?',
-                  prefixIcon: Icon(Icons.edit_note_rounded),
-                ),
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                validator: (value) => (value == null || value.isEmpty)
-                    ? 'Please enter a title.'
-                    : null,
-                onSaved: (value) => _title = value!,
+              Autocomplete<String>(
+                initialValue: TextEditingValue(text: _title),
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  if (textEditingValue.text.trim().isEmpty) {
+                    return recentTitles.take(5);
+                  }
+                  final query = textEditingValue.text.trim().toLowerCase();
+                  return recentTitles.where(
+                    (title) => title.toLowerCase().contains(query),
+                  );
+                },
+                onSelected: (String selection) {
+                  _title = selection;
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 6,
+                      borderRadius: BorderRadius.circular(16),
+                      color: Theme.of(context).colorScheme.surface,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width - 48,
+                        constraints: const BoxConstraints(maxHeight: 220),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          itemCount: options.length,
+                          separatorBuilder: (_, _) => Divider(
+                            height: 1,
+                            thickness: 0.5,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .outlineVariant
+                                .withValues(alpha: 0.3),
+                          ),
+                          itemBuilder: (BuildContext context, int index) {
+                            final String option = options.elementAt(index);
+                            return ListTile(
+                              dense: true,
+                              visualDensity: VisualDensity.compact,
+                              leading: Icon(
+                                Icons.history_rounded,
+                                size: 18,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: Text(
+                                option,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              trailing: Icon(
+                                Icons.north_west_rounded,
+                                size: 14,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                              onTap: () => onSelected(option),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                fieldViewBuilder: (
+                  context,
+                  fieldTextEditingController,
+                  focusNode,
+                  onFieldSubmitted,
+                ) {
+                  return TextFormField(
+                    controller: fieldTextEditingController,
+                    focusNode: focusNode,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      hintText: 'e.g., photo print, groceries, salary',
+                      prefixIcon: Icon(Icons.edit_note_rounded),
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                    textCapitalization: TextCapitalization.sentences,
+                    validator: (value) => (value == null || value.trim().isEmpty)
+                        ? 'Please enter a title.'
+                        : null,
+                    onSaved: (value) => _title = value?.trim() ?? '',
+                  );
+                },
               ),
               const SizedBox(height: 20),
 

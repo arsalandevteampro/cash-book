@@ -65,6 +65,7 @@ class DatabaseService {
 
     settings.putIfAbsent('currency', () => 'Rs');
     settings.putIfAbsent('theme', () => 'system');
+    settings.putIfAbsent('defaultTransactionType', () => 'expense');
     settings.putIfAbsent('createdAt', () => now);
     settings.putIfAbsent(_booksKey, () => [
       {'id': _defaultBookId, 'name': _defaultBookName, 'createdAt': now},

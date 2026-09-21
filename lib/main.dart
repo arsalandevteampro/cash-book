@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart' as provider_pkg;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,6 +19,13 @@ import 'theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+    ),
+  );
   await DatabaseService.initialize();
   try {
     await Firebase.initializeApp(
@@ -25,13 +34,19 @@ Future<void> main() async {
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
   }
+  // Initialize MobileAds asynchronously in background to avoid blocking cold start
+  unawaited(_initMobileAds());
+  runApp(const ProviderScope(child: MyApp()));
+}
+
+Future<void> _initMobileAds() async {
   try {
     await MobileAds.instance.initialize();
   } catch (e) {
     debugPrint("Google Mobile Ads initialization failed: $e");
   }
-  runApp(const ProviderScope(child: MyApp()));
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
