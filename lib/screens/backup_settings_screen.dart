@@ -226,17 +226,20 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
           ),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildGoogleAccountCard(theme),
-          const SizedBox(height: 16),
-          _buildBackupStatusCard(theme),
-          const SizedBox(height: 16),
-          _buildSettingsCard(theme),
-          const SizedBox(height: 16),
-          _buildRestoreCard(theme),
-        ],
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            _buildGoogleAccountCard(theme),
+            const SizedBox(height: 16),
+            _buildBackupStatusCard(theme),
+            const SizedBox(height: 16),
+            _buildSettingsCard(theme),
+            const SizedBox(height: 16),
+            _buildRestoreCard(theme),
+          ],
+        ),
       ),
     );
   }

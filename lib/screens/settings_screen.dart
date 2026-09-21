@@ -63,9 +63,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Settings'),
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Column(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 32.0),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
@@ -144,12 +146,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildCurrencySetting(
     BuildContext context,

@@ -107,9 +107,11 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
+          child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,12 +210,14 @@ class _GoalsFormScreenState extends State<GoalsFormScreen> {
                         ),
                 ),
               ),
+              const SizedBox(height: 32),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildGoalCard({
     required String title,
