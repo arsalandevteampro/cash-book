@@ -304,7 +304,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.light
                       ? const Color(0xFFF1F4F2)
-                      : Colors.white.withOpacity(0.05),
+                      : Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 padding: const EdgeInsets.all(6),
@@ -335,7 +335,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Text(
                 'Transaction Details',
                 style: textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 16),
@@ -374,12 +374,15 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
                 ],
                 validator: (value) {
-                  if (value == null || value.isEmpty)
+                  if (value == null || value.isEmpty) {
                     return 'Please enter an amount.';
-                  if (double.tryParse(value) == null)
+                  }
+                  if (double.tryParse(value) == null) {
                     return 'Please enter a valid number.';
-                  if (double.parse(value) <= 0)
+                  }
+                  if (double.parse(value) <= 0) {
                     return 'Please enter a number greater than zero.';
+                  }
                   return null;
                 },
                 onSaved: (value) => _amount = double.parse(value!),
@@ -389,7 +392,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
               Text(
                 'Classification & Payment',
                 style: textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
                 ),
               ),
               const SizedBox(height: 16),
@@ -681,7 +684,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                               style: textTheme.labelSmall?.copyWith(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.primary.withOpacity(0.7),
+                                ).colorScheme.primary.withValues(alpha: 0.7),
                               ),
                             ),
                             Text(
@@ -744,7 +747,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: activeColor.withOpacity(0.3),
+                    color: activeColor.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),

@@ -50,7 +50,7 @@ class _PulseAnimationState extends State<PulseAnimation>
               height: 56 + (30 * _animation.value),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: widget.color.withOpacity(0.5 * (1 - _animation.value)),
+                color: widget.color.withValues(alpha: 0.5 * (1 - _animation.value)),
               ),
             ),
             widget.child,

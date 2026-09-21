@@ -81,7 +81,7 @@ class _ManageBooksScreenState extends State<ManageBooksScreen> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primarySeedColor.withOpacity(0.08),
+                      color: AppTheme.primarySeedColor.withValues(alpha: 0.08),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -92,7 +92,7 @@ class _ManageBooksScreenState extends State<ManageBooksScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppTheme.primarySeedColor.withOpacity(0.15),
+                        color: AppTheme.primarySeedColor.withValues(alpha: 0.15),
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -146,6 +146,9 @@ class _ManageBooksScreenState extends State<ManageBooksScreen> {
               child: TextField(
                 controller: _searchController,
                 onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                onTapOutside: (event) {
+                  FocusScope.of(context).unfocus();
+                },
                 decoration: InputDecoration(
                   hintText: 'Search books by name...',
                   prefixIcon: const Icon(Icons.search_rounded, size: 20),
@@ -354,7 +357,7 @@ class _ManageBooksScreenState extends State<ManageBooksScreen> {
               decoration: BoxDecoration(
                 color: isCurrent
                     ? AppTheme.primarySeedColor
-                    : AppTheme.primarySeedColor.withOpacity(0.1),
+                    : AppTheme.primarySeedColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(

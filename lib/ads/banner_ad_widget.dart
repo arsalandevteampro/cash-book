@@ -54,13 +54,26 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             ad.dispose();
             return;
           }
+          final loadedAd = ad as BannerAd;
+          final responseInfo = loadedAd.responseInfo;
+          final adapterClassName = responseInfo?.loadedAdapterResponseInfo?.adapterClassName;
+          debugPrint('=== [AdMob Mediation Log] Ad Loaded Successfully! ===');
+          debugPrint('Filled Adapter Class: $adapterClassName');
+          if (adapterClassName != null && adapterClassName.contains('facebook')) {
+            debugPrint('🎯 WINNER: Meta Audience Network (Facebook) served this ad via Bidding!');
+          } else {
+            debugPrint('ℹ️ Filled by: $adapterClassName (Google AdMob / standard network)');
+          }
+          debugPrint('Full Response Info: ${responseInfo?.toString()}');
+
           setState(() {
-            _bannerAd = ad as BannerAd;
+            _bannerAd = loadedAd;
             _isLoaded = true;
           });
         },
         onAdFailedToLoad: (ad, error) {
           debugPrint('BannerAd failed to load: ${error.message} (Code: ${error.code})');
+          debugPrint('ResponseInfo on Failure: ${error.responseInfo?.toString()}');
           ad.dispose();
           if (mounted) {
             setState(() {

@@ -97,8 +97,9 @@ class _HomeScreenState extends State<HomeScreen> {
     const dayMs = 24 * 60 * 60 * 1000;
     bool shouldBackup = false;
 
-    if (freq == 'Immediately') shouldBackup = true;
-    else if (freq == 'Daily' && diff > dayMs) shouldBackup = true;
+    if (freq == 'Immediately') {
+      shouldBackup = true;
+    } else if (freq == 'Daily' && diff > dayMs) shouldBackup = true;
     else if (freq == 'Weekly' && diff > 7 * dayMs) shouldBackup = true;
     else if (freq == 'Monthly' && diff > 30 * dayMs) shouldBackup = true;
 
@@ -350,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF006D5B).withOpacity(0.3),
+            color: const Color(0xFF006D5B).withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -367,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'Current Balance',
                   style: textTheme.titleSmall?.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
                     letterSpacing: 1.2,
                   ),
@@ -387,7 +388,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _isBalanceVisible
                           ? Icons.visibility_rounded
                           : Icons.visibility_off_rounded,
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       size: 20,
                     ),
                   ),
@@ -405,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         text: '${settingsService.currencySymbol} ',
                         style: TextStyle(
                           fontSize: 24,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -434,10 +435,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.symmetric(vertical: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: Colors.white.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(30),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Colors.white.withValues(alpha: 0.25),
                       width: 1,
                     ),
                   ),
@@ -454,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         'Tap to reveal balance',
                         style: TextStyle(
                           fontSize: 15,
-                          color: Colors.white.withOpacity(0.95),
+                          color: Colors.white.withValues(alpha: 0.95),
                           fontWeight: FontWeight.w700,
                           letterSpacing: 0.3,
                         ),
@@ -524,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
+                color: color.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 12),
@@ -536,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: textTheme.labelSmall?.copyWith(
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
                 ),
@@ -560,7 +561,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -568,14 +569,14 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(
                   Icons.lock_outline_rounded,
-                  color: Colors.white.withOpacity(0.85),
+                  color: Colors.white.withValues(alpha: 0.85),
                   size: 11,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   'Protected',
                   style: textTheme.labelSmall?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
                   ),
@@ -603,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -611,6 +612,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: TextField(
                 controller: _searchController,
+                onTapOutside: (event) {
+                  FocusScope.of(context).unfocus();
+                },
                 decoration: InputDecoration(
                   hintText: 'Search transactions...',
                   hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
@@ -637,11 +641,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
+                    borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.1)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Theme.of(context).primaryColor.withOpacity(0.4)),
+                    borderSide: BorderSide(color: Theme.of(context).primaryColor.withValues(alpha: 0.4)),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -663,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Theme.of(context).primaryColor.withOpacity(0.3),
+                  color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 4),
                 ),
@@ -809,11 +813,11 @@ class _HomeScreenState extends State<HomeScreen> {
               color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isDark ? Colors.white12 : const Color(0xFF006D5B).withOpacity(0.15),
+                color: isDark ? Colors.white12 : const Color(0xFF006D5B).withValues(alpha: 0.15),
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isDark ? Colors.black.withOpacity(0.3) : const Color(0xFF006D5B).withOpacity(0.06),
+                  color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF006D5B).withValues(alpha: 0.06),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -824,7 +828,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF006D5B).withOpacity(0.1),
+                    color: const Color(0xFF006D5B).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -878,7 +882,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           pathString,
                           style: TextStyle(
                             fontSize: 11,
-                            color: const Color(0xFF006D5B).withOpacity(0.8),
+                            color: const Color(0xFF006D5B).withValues(alpha: 0.8),
                             fontWeight: FontWeight.w500,
                           ),
                           maxLines: 1,
@@ -892,7 +896,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF006D5B).withOpacity(isDark ? 0.2 : 0.08),
+                    color: const Color(0xFF006D5B).withValues(alpha: isDark ? 0.2 : 0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
@@ -1330,6 +1334,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       child: TextField(
                         onChanged: (val) => setModalState(() => sheetSearchQuery = val.trim()),
+                        onTapOutside: (event) {
+                          FocusScope.of(context).unfocus();
+                        },
                         decoration: InputDecoration(
                           hintText: 'Search book tree...',
                           prefixIcon: const Icon(Icons.search_rounded, size: 18),
@@ -1385,7 +1392,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Theme.of(ctx).cardColor,
                         border: Border(
                           top: BorderSide(
-                            color: Theme.of(ctx).dividerColor.withOpacity(0.1),
+                            color: Theme.of(ctx).dividerColor.withValues(alpha: 0.1),
                           ),
                         ),
                       ),

@@ -53,11 +53,18 @@ class MyApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: _getThemeMode(settingsService.theme),
             builder: (context, childWidget) {
-              return AppLockWrapper(
-                child: childWidget ?? const SizedBox.shrink(),
+              return GestureDetector(
+                onTap: () {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
+                behavior: HitTestBehavior.translucent,
+                child: AppLockWrapper(
+                  child: childWidget ?? const SizedBox.shrink(),
+                ),
               );
             },
             home: const TestingGateScreen(child: SplashScreen()),
+            navigatorObservers: [UnfocusNavigatorObserver()],
             debugShowCheckedModeBanner: false,
           );
         },
@@ -75,5 +82,27 @@ class MyApp extends StatelessWidget {
       default:
         return ThemeMode.system;
     }
+  }
+}
+
+/// NavigatorObserver that unfocuses primary focus on any route push, pop, or replace,
+/// preventing automatic focus restoration when navigating between screens.
+class UnfocusNavigatorObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
 }

@@ -254,7 +254,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                  backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                   child: Icon(
                     Icons.account_circle,
                     color: theme.colorScheme.primary,
@@ -356,7 +356,7 @@ class _BackupSettingsScreenState extends State<BackupSettingsScreen> {
                 children: [
                   LinearProgressIndicator(
                     value: _backupProgress,
-                    backgroundColor: theme.dividerColor.withOpacity(0.1),
+                    backgroundColor: theme.dividerColor.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       theme.colorScheme.primary,
                     ),

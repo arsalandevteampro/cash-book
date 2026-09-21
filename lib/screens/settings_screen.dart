@@ -164,7 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 isExpanded: true,
-                value: settingsService.currencySymbol,
+                initialValue: settingsService.currencySymbol,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

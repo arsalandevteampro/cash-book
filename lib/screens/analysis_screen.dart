@@ -255,10 +255,10 @@ class _AnalysisScreenState extends State<AnalysisScreen>
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color ?? Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.1), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
+            color: color.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -273,7 +273,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -286,7 +286,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -490,7 +490,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: const Color(0xFF00D084).withOpacity(0.1),
+                        color: const Color(0xFF00D084).withValues(alpha: 0.1),
                       ),
                     ),
                     LineChartBarData(
@@ -506,7 +506,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                       dotData: const FlDotData(show: true),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: const Color(0xFFFF5F5F).withOpacity(0.1),
+                        color: const Color(0xFFFF5F5F).withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -578,7 +578,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                 return ListTile(
                   leading: CircleAvatar(
                     backgroundColor: (isIncome ? const Color(0xFF00D084) : const Color(0xFFFF5F5F))
-                        .withOpacity(0.1),
+                        .withValues(alpha: 0.1),
                     child: Icon(
                       isIncome ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
                       color: isIncome ? const Color(0xFF00D084) : const Color(0xFFFF5F5F),
@@ -630,7 +630,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             child: Text(
               'No transaction data available',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
             ),
           ),
@@ -728,7 +728,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                               value: percentage / 100,
                               backgroundColor: Theme.of(
                                 context,
-                              ).colorScheme.outline.withOpacity(0.2),
+                              ).colorScheme.outline.withValues(alpha: 0.2),
                               valueColor: AlwaysStoppedAnimation<Color>(
                                 isExpense ? Colors.red : Colors.green,
                               ),

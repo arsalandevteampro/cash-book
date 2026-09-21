@@ -305,7 +305,7 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: _selectedMonth,
+                      initialValue: _selectedMonth,
                       decoration: const InputDecoration(
                         labelText: 'Month',
                         border: OutlineInputBorder(),
@@ -327,7 +327,7 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<int>(
-                      value: _selectedYear,
+                      initialValue: _selectedYear,
                       decoration: const InputDecoration(
                         labelText: 'Year',
                         border: OutlineInputBorder(),

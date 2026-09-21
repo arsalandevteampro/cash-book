@@ -344,9 +344,9 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
     }
 
     return Card(
-      color: statusColor.withOpacity(0.08),
+      color: statusColor.withValues(alpha: 0.08),
       shape: RoundedRectangleBorder(
-        side: BorderSide(color: statusColor.withOpacity(0.4)),
+        side: BorderSide(color: statusColor.withValues(alpha: 0.4)),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
