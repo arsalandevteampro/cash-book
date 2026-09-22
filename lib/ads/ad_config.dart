@@ -17,4 +17,17 @@ class AdConfig {
   static String get androidBannerAdUnitId {
     return useTestAds ? androidTestBannerId : androidProductionBannerId;
   }
+
+  /// Official Google Android Test Interstitial Ad Unit ID
+  static const String androidTestInterstitialId =
+      'ca-app-pub-3940256099942544/1033173712';
+
+  /// Real Android Production Interstitial Ad Unit ID
+  static const String androidProductionInterstitialId =
+      'ca-app-pub-7531348818625320/5834326279';
+
+  /// Returns the active Android Interstitial Ad Unit ID based on [useTestAds] flag
+  static String get androidInterstitialAdUnitId {
+    return useTestAds ? androidTestInterstitialId : androidProductionInterstitialId;
+  }
 }

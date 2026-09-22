@@ -10,6 +10,7 @@ import '../models/transaction.dart';
 import 'goals_form_screen.dart';
 import '../core/constants.dart';
 import '../widgets/export_report_sheet.dart';
+import '../ads/banner_ad_widget.dart';
 
 class AnalysisScreen extends StatefulWidget {
   const AnalysisScreen({super.key});
@@ -84,12 +85,38 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   : const Color(0xFF00D084),
             ),
             tooltip: 'Export Report',
-            onPressed: () => showExportReportSheet(context),
+            onPressed: () {
+              final filtered = _getFilteredTransactions(transactions);
+              final hasFilter = _selectedPeriod != 'All Time' ||
+                  _selectedCategories.isNotEmpty ||
+                  _selectedPaymentMethods.isNotEmpty;
+              String? filterDesc;
+              if (hasFilter) {
+                final parts = <String>[];
+                if (_selectedCategories.isNotEmpty) {
+                  parts.add('Categories: ${_selectedCategories.join(", ")}');
+                }
+                if (_selectedPaymentMethods.isNotEmpty) {
+                  parts.add('Payment: ${_selectedPaymentMethods.join(", ")}');
+                }
+                if (_selectedPeriod != 'All Time') {
+                  parts.add('Period: $_selectedPeriod');
+                }
+                filterDesc = parts.join(' | ');
+              }
+              showExportReportSheet(
+                context,
+                initialFilteredTransactions: filtered,
+                hasActiveFilters: hasFilter,
+                filterDescription: filterDesc,
+              );
+            },
           ),
         ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           indicatorColor: const Color(0xFF00D084),
           labelColor: Theme.of(context).brightness == Brightness.light 
               ? const Color(0xFF006D5B)
@@ -103,23 +130,27 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           ],
         ),
       ),
-      body: Column(
-        children: [
-          _buildFilterBar(settingsService),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOverviewTab(transactions, settingsService),
-                _buildCategoriesTab(transactions, settingsService),
-                _buildTrendsTab(transactions, settingsService),
-                _buildProgressTab(transactions, settingsService),
-              ],
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            _buildFilterBar(settingsService),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOverviewTab(transactions, settingsService),
+                  _buildCategoriesTab(transactions, settingsService),
+                  _buildTrendsTab(transactions, settingsService),
+                  _buildProgressTab(transactions, settingsService),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+
   }
 
   Widget _buildOverviewTab(
@@ -130,12 +161,14 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     final analysis = _calculateAnalysis(filteredTransactions);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSummaryCards(analysis, settingsService),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          const Center(child: BannerAdWidget()),
+          const SizedBox(height: 16),
           _buildBalanceChart(analysis, settingsService),
           const SizedBox(height: 24),
           _buildRecentTransactions(filteredTransactions, settingsService),
@@ -152,7 +185,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     final titleData = _getTitleAnalysis(filteredTransactions, settingsService);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [_buildTitleAnalysisList(titleData, settingsService)],
@@ -168,7 +201,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     final dailyData = _getDailyTrends(filteredTransactions, settingsService);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -188,7 +221,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     final analysis = _calculateAnalysis(filteredTransactions);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -251,7 +284,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
     IconData icon,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color ?? Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(24),
@@ -271,14 +304,14 @@ class _AnalysisScreenState extends State<AnalysisScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   title,
@@ -288,6 +321,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -398,6 +432,8 @@ class _AnalysisScreenState extends State<AnalysisScreen>
 
     // Ensure we have a minimum value for the chart
     final chartMaxY = maxValue > 0 ? maxValue : 100.0;
+    final yInterval = (chartMaxY / 4).clamp(1.0, double.infinity);
+    final xInterval = (dailyData.length / 5).ceil().clamp(1, 100).toDouble();
 
     return Card(
       child: Padding(
@@ -416,7 +452,12 @@ class _AnalysisScreenState extends State<AnalysisScreen>
               height: 250,
               child: LineChart(
                 LineChartData(
-                  gridData: const FlGridData(show: true),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: true,
+                    horizontalInterval: yInterval,
+                    verticalInterval: xInterval,
+                  ),
                   maxY: chartMaxY,
                   minY: 0,
                   lineTouchData: LineTouchData(
@@ -449,8 +490,13 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        reservedSize: 28,
+                        interval: xInterval,
                         getTitlesWidget: (value, meta) {
                           final index = value.toInt();
+                          if (value != index.toDouble()) {
+                            return const SizedBox.shrink();
+                          }
                           if (index >= 0 && index < dailyData.length) {
                             return Padding(
                               padding: const EdgeInsets.only(top: 8.0),
@@ -458,21 +504,51 @@ class _AnalysisScreenState extends State<AnalysisScreen>
                                 DateFormat(
                                   'MMM dd',
                                 ).format(dailyData[index].date),
-                                style: const TextStyle(fontSize: 10),
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withValues(alpha: 0.7),
+                                ),
                               ),
                             );
                           }
-                          return const Text('');
+                          return const SizedBox.shrink();
                         },
                       ),
                     ),
                     leftTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        reservedSize: 52,
+                        interval: yInterval,
                         getTitlesWidget: (value, meta) {
-                          return Text(
-                            settingsService.formatCurrency(value),
-                            style: const TextStyle(fontSize: 10),
+                          if (value > chartMaxY || value < 0) {
+                            return const SizedBox.shrink();
+                          }
+                          String formatted;
+                          if (value >= 1000000) {
+                            formatted = '${(value / 1000000).toStringAsFixed(1)}M';
+                          } else if (value >= 1000) {
+                            formatted = '${(value / 1000).toStringAsFixed(1)}k';
+                          } else {
+                            formatted = value.toInt().toString();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6.0),
+                            child: Text(
+                              '${settingsService.currencySymbol} $formatted',
+                              textAlign: TextAlign.right,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.7),
+                              ),
+                            ),
                           );
                         },
                       ),

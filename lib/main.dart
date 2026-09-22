@@ -16,6 +16,7 @@ import 'services/app_lock_service.dart';
 import 'services/database_service.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'theme/app_theme.dart';
+import 'ads/interstitial_ad_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,6 +43,7 @@ Future<void> main() async {
 Future<void> _initMobileAds() async {
   try {
     await MobileAds.instance.initialize();
+    InterstitialAdManager.instance.preloadAd();
   } catch (e) {
     debugPrint("Google Mobile Ads initialization failed: $e");
   }

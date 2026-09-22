@@ -13,7 +13,7 @@ import 'report_file_writer.dart'
 import '../models/transaction.dart';
 import '../utils/transaction_filters.dart';
 
-enum ReportType { daily, monthly }
+enum ReportType { daily, monthly, customRange, filtered, all }
 
 enum ReportFormat { csv, pdf }
 
@@ -75,6 +75,25 @@ class ReportExportService {
       ..sort((a, b) => b.date.compareTo(a.date));
   }
 
+  static List<Transaction> transactionsForRange(
+    List<Transaction> transactions,
+    DateTime start,
+    DateTime end,
+  ) {
+    final rangeStart = DateTime(start.year, start.month, start.day);
+    final rangeEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+
+    return transactions.where((transaction) {
+      return TransactionFilters.matchesDate(
+        transactionDate: transaction.date,
+        selectedPeriod: 'Custom',
+        customStartDate: rangeStart,
+        customEndDate: rangeEnd,
+      );
+    }).toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+  }
+
   static ReportSummary summarize(List<Transaction> transactions) {
     final income = transactions
         .where((tx) => tx.type == TransactionType.income)
@@ -92,15 +111,43 @@ class ReportExportService {
   }
 
   static String reportTitle(ReportType reportType) {
-    return reportType == ReportType.daily
-        ? 'Daily Cash Book Report'
-        : 'Monthly Cash Book Report';
+    switch (reportType) {
+      case ReportType.daily:
+        return 'Daily Cash Book Report';
+      case ReportType.monthly:
+        return 'Monthly Cash Book Report';
+      case ReportType.customRange:
+        return 'Date Range Cash Book Report';
+      case ReportType.filtered:
+        return 'Filtered Cash Book Report';
+      case ReportType.all:
+        return 'Complete Cash Book Report';
+    }
   }
 
-  static String periodLabel(ReportType reportType, DateTime periodStart) {
-    return reportType == ReportType.daily
-        ? DateFormat('EEEE, MMM d, yyyy').format(periodStart)
-        : DateFormat('MMMM yyyy').format(periodStart);
+  static String periodLabel(
+    ReportType reportType,
+    DateTime periodStart, {
+    DateTime? periodEnd,
+    String? filterDescription,
+  }) {
+    switch (reportType) {
+      case ReportType.daily:
+        return DateFormat('EEEE, MMM d, yyyy').format(periodStart);
+      case ReportType.monthly:
+        return DateFormat('MMMM yyyy').format(periodStart);
+      case ReportType.customRange:
+        final end = periodEnd ?? periodStart;
+        return '${DateFormat('MMM d, yyyy').format(periodStart)} – ${DateFormat('MMM d, yyyy').format(end)}';
+      case ReportType.filtered:
+        if (filterDescription != null && filterDescription.trim().isNotEmpty) {
+          return filterDescription;
+        }
+        final end = periodEnd ?? periodStart;
+        return 'Filtered Data (${DateFormat('MMM d, yyyy').format(periodStart)} – ${DateFormat('MMM d, yyyy').format(end)})';
+      case ReportType.all:
+        return 'All Time';
+    }
   }
 
   static String buildCsv({
@@ -111,11 +158,17 @@ class ReportExportService {
     required ReportSummary summary,
     required DateTime periodStart,
     DateTime? periodEnd,
+    String? filterDescription,
   }) {
     final generatedAt = DateFormat('MMM d, yyyy h:mm a').format(DateTime.now());
     final buffer = StringBuffer();
     final title = reportTitle(reportType);
-    final period = periodLabel(reportType, periodStart);
+    final period = periodLabel(
+      reportType,
+      periodStart,
+      periodEnd: periodEnd,
+      filterDescription: filterDescription,
+    );
 
     buffer.writeln(title);
     buffer.writeln('Book,${_csv(bookName)}');
@@ -161,11 +214,18 @@ class ReportExportService {
     required List<Transaction> transactions,
     required ReportSummary summary,
     required DateTime periodStart,
+    DateTime? periodEnd,
+    String? filterDescription,
     String Function(double amount)? formatCurrency,
   }) async {
     final generatedAt = DateFormat('MMM d, yyyy h:mm a').format(DateTime.now());
     final title = reportTitle(reportType);
-    final period = periodLabel(reportType, periodStart);
+    final period = periodLabel(
+      reportType,
+      periodStart,
+      periodEnd: periodEnd,
+      filterDescription: filterDescription,
+    );
     final formatAmount =
         formatCurrency ?? (amount) => '$currencySymbol ${amount.toStringAsFixed(2)}';
 
@@ -431,12 +491,35 @@ class ReportExportService {
     required List<Transaction> transactions,
     required DateTime periodStart,
     DateTime? periodEnd,
+    String? filterDescription,
     String Function(double amount)? formatCurrency,
   }) async {
     final summary = summarize(transactions);
-    final subject = reportType == ReportType.daily
-        ? 'Daily report - ${DateFormat('MMM d, yyyy').format(periodStart)}'
-        : 'Monthly report - ${DateFormat('MMMM yyyy').format(periodStart)}';
+    final subject = switch (reportType) {
+      ReportType.daily =>
+        'Daily report - ${DateFormat('MMM d, yyyy').format(periodStart)}',
+      ReportType.monthly =>
+        'Monthly report - ${DateFormat('MMMM yyyy').format(periodStart)}',
+      ReportType.customRange =>
+        'Date Range report - ${DateFormat('MMM d, yyyy').format(periodStart)} to ${DateFormat('MMM d, yyyy').format(periodEnd ?? periodStart)}',
+      ReportType.filtered =>
+        'Filtered report - ${DateFormat('MMM d, yyyy').format(DateTime.now())}',
+      ReportType.all =>
+        'All Time report - ${DateFormat('MMM d, yyyy').format(DateTime.now())}',
+    };
+
+    final filePrefix = switch (reportType) {
+      ReportType.daily =>
+        'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}',
+      ReportType.monthly =>
+        'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}',
+      ReportType.customRange =>
+        'cashbook_range_${DateFormat('yyyyMMdd').format(periodStart)}_to_${DateFormat('yyyyMMdd').format(periodEnd ?? periodStart)}',
+      ReportType.filtered =>
+        'cashbook_filtered_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
+      ReportType.all =>
+        'cashbook_all_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+    };
 
     late final String fileName;
     late final Uint8List bytes;
@@ -451,10 +534,9 @@ class ReportExportService {
         summary: summary,
         periodStart: periodStart,
         periodEnd: periodEnd,
+        filterDescription: filterDescription,
       );
-      fileName = reportType == ReportType.daily
-          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.csv'
-          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.csv';
+      fileName = '$filePrefix.csv';
       mimeType = 'text/csv';
       bytes = Uint8List.fromList(utf8.encode(csv));
     } else {
@@ -465,11 +547,11 @@ class ReportExportService {
         transactions: transactions,
         summary: summary,
         periodStart: periodStart,
+        periodEnd: periodEnd,
+        filterDescription: filterDescription,
         formatCurrency: formatCurrency,
       );
-      fileName = reportType == ReportType.daily
-          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.pdf'
-          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.pdf';
+      fileName = '$filePrefix.pdf';
       mimeType = 'application/pdf';
     }
 
@@ -504,9 +586,23 @@ class ReportExportService {
     required List<Transaction> transactions,
     required DateTime periodStart,
     DateTime? periodEnd,
+    String? filterDescription,
     String Function(double amount)? formatCurrency,
   }) async {
     final summary = summarize(transactions);
+
+    final filePrefix = switch (reportType) {
+      ReportType.daily =>
+        'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}',
+      ReportType.monthly =>
+        'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}',
+      ReportType.customRange =>
+        'cashbook_range_${DateFormat('yyyyMMdd').format(periodStart)}_to_${DateFormat('yyyyMMdd').format(periodEnd ?? periodStart)}',
+      ReportType.filtered =>
+        'cashbook_filtered_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}',
+      ReportType.all =>
+        'cashbook_all_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+    };
 
     late final String fileName;
     late final Uint8List bytes;
@@ -520,10 +616,9 @@ class ReportExportService {
         summary: summary,
         periodStart: periodStart,
         periodEnd: periodEnd,
+        filterDescription: filterDescription,
       );
-      fileName = reportType == ReportType.daily
-          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.csv'
-          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.csv';
+      fileName = '$filePrefix.csv';
       bytes = Uint8List.fromList(utf8.encode(csv));
     } else {
       bytes = await buildPdf(
@@ -533,11 +628,11 @@ class ReportExportService {
         transactions: transactions,
         summary: summary,
         periodStart: periodStart,
+        periodEnd: periodEnd,
+        filterDescription: filterDescription,
         formatCurrency: formatCurrency,
       );
-      fileName = reportType == ReportType.daily
-          ? 'cashbook_daily_${DateFormat('yyyy-MM-dd').format(periodStart)}.pdf'
-          : 'cashbook_monthly_${DateFormat('yyyy-MM').format(periodStart)}.pdf';
+      fileName = '$filePrefix.pdf';
     }
 
     return saveReportFile(fileName: fileName, bytes: bytes);

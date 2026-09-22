@@ -219,7 +219,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.ios_share_rounded, color: Color(0xFF006D5B)),
-            onPressed: () => showExportReportSheet(context),
+            onPressed: () {
+              final isFiltered = hasActiveFilters || _searchQuery.trim().isNotEmpty;
+              String? filterDesc;
+              if (isFiltered) {
+                final parts = <String>[];
+                if (_searchQuery.trim().isNotEmpty) parts.add('Search: "$_searchQuery"');
+                if (_selectedCategories.isNotEmpty) {
+                  parts.add('Categories: ${_selectedCategories.join(", ")}');
+                }
+                if (_selectedPaymentMethods.isNotEmpty) {
+                  parts.add('Payment: ${_selectedPaymentMethods.join(", ")}');
+                }
+                if (_selectedType != null) {
+                  parts.add('Type: ${_selectedType == TransactionType.income ? "Income" : "Expense"}');
+                }
+                if (TransactionFilters.hasActiveDateFilter(_selectedPeriod)) {
+                  parts.add('Period: $_selectedPeriod');
+                }
+                filterDesc = parts.join(' | ');
+              }
+              showExportReportSheet(
+                context,
+                initialFilteredTransactions: transactions,
+                hasActiveFilters: isFiltered,
+                filterDescription: filterDesc,
+              );
+            },
             tooltip: 'Export Report',
           ),
           IconButton(
