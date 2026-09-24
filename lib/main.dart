@@ -14,6 +14,7 @@ import 'services/settings_service.dart';
 import 'services/goals_service.dart';
 import 'services/app_lock_service.dart';
 import 'services/database_service.dart';
+import 'services/push_notification_service.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'theme/app_theme.dart';
 import 'ads/interstitial_ad_manager.dart';
@@ -32,6 +33,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await PushNotificationService.instance.initialize();
   } catch (e) {
     debugPrint("Firebase initialization failed: $e");
   }
@@ -65,6 +67,7 @@ class MyApp extends StatelessWidget {
       child: provider_pkg.Consumer<SettingsService>(
         builder: (context, settingsService, child) {
           return MaterialApp(
+            scaffoldMessengerKey: PushNotificationService.scaffoldMessengerKey,
             title: 'Cash Book',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,

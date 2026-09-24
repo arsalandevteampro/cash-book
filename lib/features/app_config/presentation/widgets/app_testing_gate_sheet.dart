@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../services/google_drive_service.dart';
+import '../../../../services/push_notification_service.dart';
 import '../../../more_apps/data/models/app_model.dart';
 import '../../data/models/access_request_model.dart';
 import '../../services/access_request_rate_limiter.dart';
@@ -9,14 +10,16 @@ import '../providers/app_config_providers.dart';
 
 class AppTestingGateSheet extends ConsumerStatefulWidget {
   final AppModel? app;
-  const AppTestingGateSheet({super.key, this.app});
+  final bool initialEdit;
+  const AppTestingGateSheet({super.key, this.app, this.initialEdit = false});
 
-  static Future<void> show(BuildContext context, [AppModel? app]) {
+  static Future<void> show(BuildContext context, [AppModel? app, bool initialEdit = false]) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AppTestingGateSheet(app: app),
+      builder: (context) => AppTestingGateSheet(app: app, initialEdit: initialEdit),
     );
   }
 
@@ -30,12 +33,15 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
   final _emailController = TextEditingController();
   bool _isSubmitting = false;
   bool _isGoogleSigningIn = false;
-  bool _isEditingAfterApproval = false;
+  bool _isEditingRequest = false;
   String? _rateLimitError;
 
   @override
   void initState() {
     super.initState();
+    if (widget.initialEdit) {
+      _isEditingRequest = true;
+    }
     _checkSilentSignIn();
     _checkRateLimit();
   }
@@ -94,16 +100,19 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
     try {
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
+      final fcmToken = await PushNotificationService.instance.getToken();
       
       await ref.read(appConfigRepositoryProvider).submitAccessRequest(
             name,
             email,
             _appId,
             _appName,
+            fcmToken: fcmToken,
           );
       await ref.read(userEmailProvider.notifier).setEmail(email);
 
       if (mounted) {
+        setState(() => _isEditingRequest = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Access request submitted successfully!'),
@@ -150,28 +159,40 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
     final userEmail = ref.watch(userEmailProvider);
     final requestAsync = ref.watch(appAccessRequestStreamProvider(_appId));
     final accessGrantedAsync = ref.watch(isSpecificAppAccessGrantedProvider(_appId));
 
-    final bool isApproved = accessGrantedAsync.value ?? false;
+    final bool isApproved = (accessGrantedAsync.value ?? false) || (requestAsync.value?.isApproved ?? false);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+    final double bottomInset = mediaQuery.viewInsets.bottom;
+    final double safeBottomPadding = mediaQuery.padding.bottom;
+    final double computedBottomPadding = bottomInset > 0 ? bottomInset + 16 : safeBottomPadding + 28;
+
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: mediaQuery.size.height * 0.88,
+        ),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: EdgeInsets.only(
+          left: 24,
+          right: 24,
+          top: 12,
+          bottom: computedBottomPadding,
+        ),
+        child: SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             // Handle bar
             Center(
               child: Container(
@@ -248,8 +269,48 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
             ),
             const SizedBox(height: 24),
 
-            // If approved but not editing, show direct Play Store Link!
-            if (isApproved && !_isEditingAfterApproval) ...[
+            // If editing request details (either after approval or while pending)
+            if (_isEditingRequest) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Update Your Information',
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRequestForm(userEmail),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: () {
+                  setState(() => _isEditingRequest = false);
+                },
+                icon: const Icon(Icons.close_rounded, size: 16),
+                label: const Text('Cancel'),
+              ),
+              const SizedBox(height: 24),
+            ]
+            // If approved but not editing, show direct Play Store Link & Change Details button!
+            else if (isApproved) ...[
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -299,50 +360,16 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                         icon: const Icon(Icons.edit_rounded),
                         label: const Text('Change Request Details'),
                         onPressed: () {
-                          setState(() => _isEditingAfterApproval = true);
+                          if (requestAsync.value != null) {
+                            _nameController.text = requestAsync.value!.name;
+                          }
+                          _emailController.text = userEmail;
+                          setState(() => _isEditingRequest = true);
                         },
                       ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 24),
-            ] else if (isApproved && _isEditingAfterApproval) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.4)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.edit_rounded, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Update Your Information',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    _buildRequestForm(userEmail),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() => _isEditingAfterApproval = false);
-                },
-                icon: const Icon(Icons.close_rounded, size: 16),
-                label: const Text('Cancel'),
               ),
               const SizedBox(height: 24),
             ] else if (userEmail.isNotEmpty) ...[
@@ -450,8 +477,9 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRequestStatusCard(AccessRequestModel request) {
     final theme = Theme.of(context);
@@ -524,6 +552,25 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                       style: theme.textTheme.bodyMedium,
                     ),
                   ],
+                ),
+              ),
+            ],
+            if (request.isPending) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                    side: BorderSide(color: statusColor),
+                  ),
+                  icon: const Icon(Icons.edit_rounded),
+                  label: const Text('Change Request Details'),
+                  onPressed: () {
+                    _nameController.text = request.name;
+                    _emailController.text = request.email;
+                    setState(() => _isEditingRequest = true);
+                  },
                 ),
               ),
             ],
@@ -610,6 +657,7 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
             label: const Text('Submit Request'),
             onPressed: _isSubmitting ? null : _submitRequest,
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );

@@ -31,7 +31,13 @@ class AppConfigRepositoryImpl implements AppConfigRepository {
   }
 
   @override
-  Future<void> submitAccessRequest(String name, String email, String appId, String appName) async {
+  Future<void> submitAccessRequest(
+    String name,
+    String email,
+    String appId,
+    String appName, {
+    String? fcmToken,
+  }) async {
     final lowerEmail = email.toLowerCase().trim();
 
     // 1. Check local device rate limit (max 3 requests per 24 hours)
@@ -40,13 +46,7 @@ class AppConfigRepositoryImpl implements AppConfigRepository {
       throw Exception(rateLimitError);
     }
 
-    // 2. Check if email is already in approved testing emails
-    final testingDoc = await _firestore.collection('testing_emails').doc(lowerEmail).get();
-    if (testingDoc.exists) {
-      throw Exception('This email address ($lowerEmail) is already an approved testing account.');
-    }
-
-    // 3. Query if a request already exists for this email and appId
+    // 2. Query if a request already exists for this email and appId
     final query = await _requestsCol
         .where('email', isEqualTo: lowerEmail)
         .where('appId', isEqualTo: appId)
@@ -54,26 +54,39 @@ class AppConfigRepositoryImpl implements AppConfigRepository {
         .get();
     
     if (query.docs.isNotEmpty) {
+      final docId = query.docs.first.id;
       final existingData = query.docs.first.data() as Map<String, dynamic>;
       final existingStatus = existingData['status'] as String? ?? 'pending';
 
-      if (existingStatus == 'pending') {
-        throw Exception('An access request for $lowerEmail is already pending review. Please wait for approval.');
-      } else if (existingStatus == 'approved') {
-        throw Exception('An access request for $lowerEmail has already been approved.');
+      if (existingStatus == 'pending' || existingStatus == 'approved') {
+        // Update existing request details
+        await _requestsCol.doc(docId).update({
+          'name': name,
+          'fcmToken': ?fcmToken,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        await AccessRequestRateLimiter.recordSubmission();
+        return;
       }
 
       // Update existing request status back to pending if it was previously rejected
-      await _requestsCol.doc(query.docs.first.id).set({
+      await _requestsCol.doc(docId).set({
         'name': name,
         'email': lowerEmail,
         'status': 'pending',
         'adminMessage': '',
         'appId': appId,
         'appName': appName,
+        'fcmToken': ?fcmToken,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
+      // 3. Check if email is already in approved testing emails
+      final testingDoc = await _firestore.collection('testing_emails').doc(lowerEmail).get();
+      if (testingDoc.exists) {
+        throw Exception('This email address ($lowerEmail) is already an approved testing account.');
+      }
+
       // Create new request
       await _requestsCol.add({
         'name': name,
@@ -82,6 +95,7 @@ class AppConfigRepositoryImpl implements AppConfigRepository {
         'adminMessage': '',
         'appId': appId,
         'appName': appName,
+        'fcmToken': ?fcmToken,
         'createdAt': FieldValue.serverTimestamp(),
       });
     }

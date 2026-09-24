@@ -271,7 +271,7 @@ class _TransactionItem extends StatelessWidget {
                         backupIcon,
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('MMM d').format(transaction.date),
+                          DateFormat('MMM d • h:mm a').format(transaction.date),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

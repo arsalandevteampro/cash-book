@@ -133,20 +133,43 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
     }
   }
 
-  void _presentDatePicker() {
-    showDatePicker(
+  Future<void> _presentDatePicker() async {
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _date,
       firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    ).then((pickedDate) {
-      if (pickedDate == null) {
-        return;
-      }
+      lastDate: DateTime(2100),
+    );
+    if (pickedDate != null) {
       setState(() {
-        _date = pickedDate;
+        _date = DateTime(
+          pickedDate.year,
+          pickedDate.month,
+          pickedDate.day,
+          _date.hour,
+          _date.minute,
+          _date.second,
+        );
       });
-    });
+    }
+  }
+
+  Future<void> _presentTimePicker() async {
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_date),
+    );
+    if (pickedTime != null) {
+      setState(() {
+        _date = DateTime(
+          _date.year,
+          _date.month,
+          _date.day,
+          pickedTime.hour,
+          pickedTime.minute,
+        );
+      });
+    }
   }
 
   Future<void> _showAddNewDialog(String title, Function(String) onAdd) async {
@@ -272,7 +295,6 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final settingsService = Provider.of<SettingsService>(context);
     final transactionService = Provider.of<TransactionService>(context, listen: false);
     final recentTitles = transactionService.recentTitles;
@@ -312,22 +334,29 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
       ),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 32.0),
-          child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18.0, 8.0, 18.0, 16.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 24.0,
+                ),
+                child: IntrinsicHeight(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
               // Transaction Type Selector
               Container(
                 decoration: BoxDecoration(
                   color: Theme.of(context).brightness == Brightness.light
                       ? const Color(0xFFF1F4F2)
                       : Colors.white.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.all(5),
                 child: Row(
                   children: [
                     Expanded(
@@ -350,15 +379,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
+              const Spacer(),
 
               Text(
-                'Transaction Details',
-                style: textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                'TRANSACTION DETAILS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               Autocomplete<String>(
                 initialValue: TextEditingValue(text: _title),
@@ -460,7 +493,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               TextFormField(
                 initialValue: _amount == 0.0 ? '' : _amount.toString(),
@@ -494,15 +527,19 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 },
                 onSaved: (value) => _amount = double.parse(value!),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
+              const Spacer(),
 
               Text(
-                'Classification & Payment',
-                style: textTheme.titleSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                'CLASSIFICATION & PAYMENT',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
 
               DropdownButtonFormField<String>(
                 isExpanded: true,
@@ -607,7 +644,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 validator: (value) =>
                     value == null ? 'Please select a category' : null,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               DropdownButtonFormField<dynamic>(
                     isExpanded: true,
@@ -755,86 +792,180 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
                 validator: (value) =>
                     value == null ? 'Please select a payment method' : null,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
+              const Spacer(),
 
-              // Date Picker Button
-              InkWell(
-                onTap: _presentDatePicker,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.light
-                        ? Colors.white
-                        : const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Theme.of(context).brightness == Brightness.light
-                          ? const Color(0xFFCBD5E1)
-                          : const Color(0xFF334155),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today_rounded,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              Text(
+                'DATE & TIME',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.75),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Date & Time Picker Row
+              Row(
+                children: [
+                  // Date Card
+                  Expanded(
+                    flex: 3,
+                    child: InkWell(
+                      onTap: _presentDatePicker,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.light
+                              ? Colors.white
+                              : const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.light
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF334155),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              'Transaction Date',
-                              style: textTheme.labelSmall?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withValues(alpha: 0.7),
-                              ),
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 18,
+                              color: Theme.of(context).primaryColor,
                             ),
-                            Text(
-                              DateFormat('EEEE, MMMM d, yyyy').format(_date),
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Date',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormat('EEE, d MMM yyyy').format(_date),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.grey,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  // Time Card
+                  Expanded(
+                    flex: 2,
+                    child: InkWell(
+                      onTap: _presentTimePicker,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.light
+                              ? Colors.white
+                              : const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.light
+                                ? const Color(0xFFCBD5E1)
+                                : const Color(0xFF334155),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 18,
+                              color: Theme.of(context).primaryColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Time',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                  Text(
+                                    DateFormat('hh:mm a').format(_date),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 16),
+              const Spacer(),
 
               ElevatedButton(
                 onPressed: _submitData,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: Text(
                   widget.transaction == null
                       ? 'Add Transaction'
                       : 'Save Changes',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-              const SizedBox(height: 32),
             ],
           ),
         ),
       ),
     ),
   );
+},
+),
+),
+);
 }
 
   Widget _buildTypeButton(

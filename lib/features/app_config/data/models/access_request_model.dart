@@ -8,6 +8,7 @@ class AccessRequestModel {
   final String adminMessage;
   final String appId;
   final String appName;
+  final String? fcmToken;
   final DateTime? createdAt;
 
   AccessRequestModel({
@@ -18,6 +19,7 @@ class AccessRequestModel {
     this.adminMessage = '',
     this.appId = '',
     this.appName = '',
+    this.fcmToken,
     this.createdAt,
   });
 
@@ -32,6 +34,7 @@ class AccessRequestModel {
         'adminMessage': adminMessage,
         'appId': appId,
         'appName': appName,
+        if (fcmToken != null) 'fcmToken': fcmToken,
         'createdAt': createdAt != null
             ? Timestamp.fromDate(createdAt!)
             : FieldValue.serverTimestamp(),
@@ -52,6 +55,7 @@ class AccessRequestModel {
       adminMessage: map['adminMessage'] ?? '',
       appId: map['appId'] ?? '',
       appName: map['appName'] ?? '',
+      fcmToken: map['fcmToken'] as String?,
       createdAt: parseDate(map['createdAt']),
     );
   }

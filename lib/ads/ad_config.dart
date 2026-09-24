@@ -2,7 +2,7 @@
 class AdConfig {
   /// Set [useTestAds] to false and provide your real [androidProductionBannerId]
   /// before building and publishing the production release.
-  static const bool useTestAds = true;
+  static const bool useTestAds = false;
 
   /// Official Google Android Test Banner Ad Unit ID
   static const String androidTestBannerId =

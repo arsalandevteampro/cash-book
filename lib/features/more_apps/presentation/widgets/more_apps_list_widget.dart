@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../features/app_config/presentation/widgets/app_testing_gate_sheet.dart';
+import '../../../app_config/presentation/providers/app_config_providers.dart';
 import '../providers/more_apps_providers.dart';
 
 class MoreAppsListWidget extends ConsumerWidget {
@@ -36,92 +37,8 @@ class MoreAppsListWidget extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Premium Beta Access Request Banner
-        Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                theme.colorScheme.primaryContainer.withValues(alpha: 0.6),
-                theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.35),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.science_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Beta Testing Access',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                        Text(
-                          '1-click request unlocks all beta apps',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 1,
-                  ),
-                  onPressed: () {
-                    AppTestingGateSheet.show(context);
-                  },
-                  icon: const Icon(Icons.send_rounded, size: 15),
-                  label: const Text(
-                    'Request Access',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
+        // Beta Access Request or Change Details Banner
+        _buildBetaAccessBanner(context, ref),
 
         // Apps List
         appsAsync.when(
@@ -372,6 +289,188 @@ class MoreAppsListWidget extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildBetaAccessBanner(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final userEmail = ref.watch(userEmailProvider);
+    final requestAsync = ref.watch(appAccessRequestStreamProvider('cash-book'));
+    final accessGrantedAsync = ref.watch(isSpecificAppAccessGrantedProvider('cash-book'));
+
+    final request = requestAsync.value;
+    final bool isApproved = (accessGrantedAsync.value ?? false) || (request?.isApproved ?? false);
+    final bool isPending = request?.isPending ?? false;
+    final bool isRejected = request?.isRejected ?? false;
+    final bool hasRequest = userEmail.isNotEmpty && (request != null || isApproved);
+
+    // Dynamic banner styling based on status
+    Color accentColor = theme.colorScheme.primary;
+    Color iconBgColor = theme.colorScheme.primary;
+    IconData headerIcon = Icons.science_rounded;
+    String statusTitle = 'Beta Testing Access';
+    String subtitleText = '1-click request unlocks all beta apps';
+    String? statusBadge;
+    Color? badgeColor;
+    bool showChangeDetails = false;
+
+    if (hasRequest && isApproved) {
+      accentColor = Colors.green;
+      iconBgColor = Colors.green;
+      headerIcon = Icons.check_circle_rounded;
+      statusBadge = 'Access Granted';
+      badgeColor = isDark ? Colors.green.shade300 : Colors.green.shade700;
+      subtitleText = userEmail;
+      showChangeDetails = true;
+    } else if (hasRequest && isPending) {
+      accentColor = Colors.orange;
+      iconBgColor = Colors.orange;
+      headerIcon = Icons.hourglass_top_rounded;
+      statusBadge = 'Request Pending';
+      badgeColor = isDark ? Colors.orange.shade300 : Colors.orange.shade800;
+      subtitleText = request?.email.isNotEmpty == true ? request!.email : userEmail;
+      showChangeDetails = true;
+    } else if (hasRequest && isRejected) {
+      accentColor = Colors.red;
+      iconBgColor = Colors.red;
+      headerIcon = Icons.cancel_rounded;
+      statusBadge = 'Access Declined';
+      badgeColor = isDark ? Colors.red.shade300 : Colors.red.shade700;
+      subtitleText = request?.email.isNotEmpty == true ? request!.email : userEmail;
+      showChangeDetails = true;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            accentColor.withValues(alpha: isDark ? 0.22 : 0.14),
+            accentColor.withValues(alpha: isDark ? 0.08 : 0.04),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  headerIcon,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusTitle,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: showChangeDetails
+                            ? (isDark ? accentColor.withValues(alpha: 0.9) : accentColor)
+                            : theme.colorScheme.primary,
+                      ),
+                    ),
+                    if (statusBadge != null)
+                      Row(
+                        children: [
+                          Text(
+                            statusBadge,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: badgeColor,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              ' • $subtitleText',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        subtitleText,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: showChangeDetails
+                ? OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? accentColor.withValues(alpha: 0.95) : accentColor,
+                      side: BorderSide(color: accentColor.withValues(alpha: 0.6)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: () {
+                      AppTestingGateSheet.show(context);
+                    },
+                    icon: const Icon(Icons.edit_rounded, size: 15),
+                    label: const Text(
+                      'Change Request Details',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                : ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 1,
+                    ),
+                    onPressed: () {
+                      AppTestingGateSheet.show(context);
+                    },
+                    icon: const Icon(Icons.send_rounded, size: 15),
+                    label: const Text(
+                      'Request Access',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }

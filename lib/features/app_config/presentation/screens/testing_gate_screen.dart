@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../services/google_drive_service.dart';
+import '../../../../services/push_notification_service.dart';
 import '../../data/models/access_request_model.dart';
 import '../../services/access_request_rate_limiter.dart';
 import '../providers/app_config_providers.dart';
@@ -80,12 +81,14 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
     try {
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
+      final fcmToken = await PushNotificationService.instance.getToken();
       
       await ref.read(appConfigRepositoryProvider).submitAccessRequest(
             name,
             email,
             'cash-book',
             'Cash Book',
+            fcmToken: fcmToken,
           );
       await ref.read(userEmailProvider.notifier).setEmail(email);
 
@@ -236,77 +239,79 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
                   const SizedBox(height: 24),
                 ],
 
-                // Google Sign In option
-                if (GoogleDriveService.currentUser == null) ...[
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                      foregroundColor: theme.colorScheme.onSurface,
-                    ),
-                    onPressed: _isGoogleSigningIn ? null : _googleSignIn,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        if (_isGoogleSigningIn)
-                          const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else
-                          Container(
-                            width: 22,
-                            height: 22,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'G',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF4285F4),
+                // Google Sign In option & blank Request Form (only when not yet submitted)
+                if (userEmail.isEmpty) ...[
+                  if (GoogleDriveService.currentUser == null) ...[
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        foregroundColor: theme.colorScheme.onSurface,
+                      ),
+                      onPressed: _isGoogleSigningIn ? null : _googleSignIn,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isGoogleSigningIn)
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else
+                            Container(
+                              width: 22,
+                              height: 22,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'G',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF4285F4),
+                                  ),
                                 ),
                               ),
                             ),
+                          const SizedBox(width: 12),
+                          const Flexible(
+                            child: Text(
+                              'Sign in with Google to Check Access',
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        const SizedBox(width: 12),
-                        const Flexible(
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'Sign in with Google to Check Access',
-                            overflow: TextOverflow.ellipsis,
+                            'OR REQUEST ACCESS',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
+                        const Expanded(child: Divider()),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'OR REQUEST ACCESS',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                ],
+                    const SizedBox(height: 20),
+                  ],
 
-                // Request Form or Rate Limit Exceeded Card
-                if (_rateLimitError != null)
-                  _buildRateLimitExceededCard()
-                else
-                  _buildRequestForm(),
+                  // Request Form or Rate Limit Exceeded Card
+                  if (_rateLimitError != null)
+                    _buildRateLimitExceededCard()
+                  else
+                    _buildRequestForm(),
+                ],
                 
                 if (userEmail.isNotEmpty) ...[
                   const SizedBox(height: 16),
@@ -401,14 +406,22 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
                 ),
               ),
             ],
-            if (request.isApproved) ...[
+            if (request.isApproved || request.isPending) ...[
               const SizedBox(height: 12),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.edit_rounded, size: 16),
-                label: const Text('Change Request Details'),
-                onPressed: () {
-                  setState(() => _isEditingAfterApproval = true);
-                },
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: statusColor),
+                  ),
+                  icon: const Icon(Icons.edit_rounded, size: 16),
+                  label: const Text('Change Request Details'),
+                  onPressed: () {
+                    _nameController.text = request.name;
+                    _emailController.text = request.email;
+                    setState(() => _isEditingAfterApproval = true);
+                  },
+                ),
               ),
             ],
           ],

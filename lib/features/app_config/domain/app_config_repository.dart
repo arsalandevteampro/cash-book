@@ -8,7 +8,13 @@ abstract class AppConfigRepository {
   Stream<List<String>> watchTestingEmails();
 
   /// Submit a request for beta access for a specific app
-  Future<void> submitAccessRequest(String name, String email, String appId, String appName);
+  Future<void> submitAccessRequest(
+    String name,
+    String email,
+    String appId,
+    String appName, {
+    String? fcmToken,
+  });
 
   /// Stream the status of a specific request for a specific app
   Stream<AccessRequestModel?> watchRequestByEmailAndApp(String email, String appId);
