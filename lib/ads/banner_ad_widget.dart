@@ -1,11 +1,18 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
 
 /// A reusable anchored adaptive Banner Ad widget.
-/// Automatically handles screen sizing, ad loading, error fallback, and proper lifecycle disposal.
+/// Automatically handles screen sizing, ad loading, error fallback, retry on failure, and proper lifecycle disposal.
 class BannerAdWidget extends StatefulWidget {
-  const BannerAdWidget({super.key});
+  final double horizontalPadding;
+  final int? adWidth;
+  const BannerAdWidget({
+    super.key,
+    this.horizontalPadding = 0,
+    this.adWidth,
+  });
 
   @override
   State<BannerAdWidget> createState() => _BannerAdWidgetState();
@@ -14,7 +21,11 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
+  bool _isLoading = false;
   int? _loadedWidth;
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
+  static const int _maxRetries = 3;
 
   @override
   void didChangeDependencies() {
@@ -22,27 +33,56 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _loadAdaptiveAd();
   }
 
-  Future<void> _loadAdaptiveAd() async {
-    final width = MediaQuery.of(context).size.width.truncate();
+  @override
+  void didUpdateWidget(BannerAdWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.adWidth != widget.adWidth ||
+        oldWidget.horizontalPadding != widget.horizontalPadding) {
+      _loadAdaptiveAd();
+    }
+  }
 
-    // Avoid redundant reloading if width hasn't changed
-    if (_bannerAd != null && _loadedWidth == width) {
+  Future<void> _loadAdaptiveAd() async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final mediaWidth = (widget.adWidth?.toDouble() ??
+            (screenWidth - widget.horizontalPadding))
+        .truncate();
+    if (mediaWidth <= 0) return;
+
+    // Avoid redundant reloading if width hasn't changed and ad is already loaded or currently loading
+    if ((_bannerAd != null && _loadedWidth == mediaWidth) || _isLoading) {
       return;
     }
 
-    // Dispose previous ad if reloading for screen width/orientation change
+    _isLoading = true;
+    _loadedWidth = mediaWidth;
+
+    // Safely dispose old ad by resetting state first so AdWidget is removed before disposal
     if (_bannerAd != null) {
-      await _bannerAd!.dispose();
-      _bannerAd = null;
-      _isLoaded = false;
+      final oldAd = _bannerAd;
+      setState(() {
+        _bannerAd = null;
+        _isLoaded = false;
+      });
+      try {
+        await oldAd?.dispose();
+      } catch (e) {
+        debugPrint('Error disposing old banner ad: $e');
+      }
     }
 
-    _loadedWidth = width;
+    AdSize? adaptiveSize;
+    try {
+      // ignore: deprecated_member_use
+      adaptiveSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(mediaWidth);
+    } catch (e) {
+      debugPrint('Error getting adaptive banner size: $e');
+    }
 
-    final AdSize? adaptiveSize =
-        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
-
-    if (!mounted) return;
+    if (!mounted) {
+      _isLoading = false;
+      return;
+    }
 
     final bannerAd = BannerAd(
       adUnitId: AdConfig.androidBannerAdUnitId,
@@ -57,29 +97,31 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           final loadedAd = ad as BannerAd;
           final responseInfo = loadedAd.responseInfo;
           final adapterClassName = responseInfo?.loadedAdapterResponseInfo?.adapterClassName;
-          debugPrint('=== [AdMob Mediation Log] Ad Loaded Successfully! ===');
+          debugPrint('=== [AdMob Mediation Log] Banner Ad Loaded Successfully! ===');
           debugPrint('Filled Adapter Class: $adapterClassName');
-          if (adapterClassName != null && adapterClassName.contains('facebook')) {
-            debugPrint('🎯 WINNER: Meta Audience Network (Facebook) served this ad via Bidding!');
-          } else {
-            debugPrint('ℹ️ Filled by: $adapterClassName (Google AdMob / standard network)');
-          }
-          debugPrint('Full Response Info: ${responseInfo?.toString()}');
+          debugPrint('Ad Unit ID: ${AdConfig.androidBannerAdUnitId}');
+
+          _retryAttempt = 0;
+          _retryTimer?.cancel();
+          _retryTimer = null;
 
           setState(() {
             _bannerAd = loadedAd;
             _isLoaded = true;
+            _isLoading = false;
           });
         },
         onAdFailedToLoad: (ad, error) {
-          debugPrint('BannerAd failed to load: ${error.message} (Code: ${error.code})');
-          debugPrint('ResponseInfo on Failure: ${error.responseInfo?.toString()}');
+          debugPrint('=== [AdMob] BannerAd failed to load: ${error.message} (Code: ${error.code}) ===');
+          debugPrint('Ad Unit ID used: ${AdConfig.androidBannerAdUnitId}');
           ad.dispose();
           if (mounted) {
             setState(() {
               _bannerAd = null;
               _isLoaded = false;
+              _isLoading = false;
             });
+            _scheduleRetry();
           }
         },
       ),
@@ -93,13 +135,29 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         setState(() {
           _bannerAd = null;
           _isLoaded = false;
+          _isLoading = false;
         });
+        _scheduleRetry();
       }
     }
   }
 
+  void _scheduleRetry() {
+    if (_retryAttempt >= _maxRetries || !mounted) return;
+    _retryAttempt++;
+    final delaySeconds = _retryAttempt * 5; // 5s, 10s, 15s
+    debugPrint('Scheduling BannerAd retry #$_retryAttempt in ${delaySeconds}s...');
+    _retryTimer?.cancel();
+    _retryTimer = Timer(Duration(seconds: delaySeconds), () {
+      if (mounted) {
+        _loadAdaptiveAd();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _retryTimer?.cancel();
     _bannerAd?.dispose();
     super.dispose();
   }
@@ -110,11 +168,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return const SizedBox.shrink();
     }
 
+    final adWidth = _bannerAd!.size.width.toDouble();
+    final adHeight = _bannerAd!.size.height.toDouble();
+
     return Container(
       alignment: Alignment.center,
-      width: _bannerAd!.size.width.toDouble(),
-      height: _bannerAd!.size.height.toDouble(),
-      child: AdWidget(ad: _bannerAd!),
+      width: double.infinity,
+      height: adHeight,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: adWidth,
+          height: adHeight,
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      ),
     );
   }
 }

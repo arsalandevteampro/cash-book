@@ -72,8 +72,9 @@ class _RatingDialogState extends State<_RatingDialog> {
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -108,25 +109,31 @@ class _RatingDialogState extends State<_RatingDialog> {
               ),
             ),
             const SizedBox(height: 22),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (index) {
-                final starIndex = index + 1;
-                final isSelected = starIndex <= _selectedStars;
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(5, (index) {
+                  final starIndex = index + 1;
+                  final isSelected = starIndex <= _selectedStars;
 
-                return IconButton(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => setState(() => _selectedStars = starIndex),
-                  icon: Icon(
-                    isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
-                    color: isSelected
-                        ? const Color(0xFFFFB300)
-                        : Colors.grey.shade400,
-                    size: 36,
-                  ),
-                );
-              }),
+                  return IconButton(
+                    padding: const EdgeInsets.all(4),
+                    constraints: const BoxConstraints(),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => setState(() => _selectedStars = starIndex),
+                    icon: Icon(
+                      isSelected ? Icons.star_rounded : Icons.star_outline_rounded,
+                      color: isSelected
+                          ? const Color(0xFFFFB300)
+                          : Colors.grey.shade400,
+                      size: 36,
+                    ),
+                  );
+                }),
+              ),
             ),
             const SizedBox(height: 8),
             SizedBox(

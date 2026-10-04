@@ -167,7 +167,7 @@ class _AnalysisScreenState extends State<AnalysisScreen>
         children: [
           _buildSummaryCards(analysis, settingsService),
           const SizedBox(height: 16),
-          const Center(child: BannerAdWidget()),
+          const BannerAdWidget(horizontalPadding: 32),
           const SizedBox(height: 16),
           _buildBalanceChart(analysis, settingsService),
           const SizedBox(height: 24),

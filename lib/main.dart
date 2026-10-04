@@ -12,12 +12,15 @@ import 'screens/splash_screen.dart';
 import 'services/transaction_service.dart';
 import 'services/settings_service.dart';
 import 'services/goals_service.dart';
+import 'services/follow_up_service.dart';
 import 'services/app_lock_service.dart';
 import 'services/database_service.dart';
+import 'services/notification_service.dart';
 import 'services/push_notification_service.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'theme/app_theme.dart';
 import 'ads/interstitial_ad_manager.dart';
+import 'ads/follow_up_interstitial_ad_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +32,7 @@ Future<void> main() async {
     ),
   );
   await DatabaseService.initialize();
+  await NotificationService.instance.initialize();
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -46,6 +50,7 @@ Future<void> _initMobileAds() async {
   try {
     await MobileAds.instance.initialize();
     InterstitialAdManager.instance.preloadAd();
+    FollowUpInterstitialAdManager.instance.preloadAd();
   } catch (e) {
     debugPrint("Google Mobile Ads initialization failed: $e");
   }
@@ -62,6 +67,7 @@ class MyApp extends StatelessWidget {
         provider_pkg.ChangeNotifierProvider(create: (ctx) => TransactionService()),
         provider_pkg.ChangeNotifierProvider(create: (ctx) => SettingsService()),
         provider_pkg.ChangeNotifierProvider(create: (ctx) => GoalsService()),
+        provider_pkg.ChangeNotifierProvider(create: (ctx) => FollowUpService()),
         provider_pkg.ChangeNotifierProvider(create: (ctx) => AppLockService()),
       ],
       child: provider_pkg.Consumer<SettingsService>(
@@ -73,13 +79,23 @@ class MyApp extends StatelessWidget {
             darkTheme: AppTheme.darkTheme,
             themeMode: _getThemeMode(settingsService.theme),
             builder: (context, childWidget) {
+              final theme = Theme.of(context);
               return GestureDetector(
                 onTap: () {
                   FocusManager.instance.primaryFocus?.unfocus();
                 },
                 behavior: HitTestBehavior.translucent,
                 child: AppLockWrapper(
-                  child: childWidget ?? const SizedBox.shrink(),
+                  child: Container(
+                    color: theme.scaffoldBackgroundColor,
+                    child: SafeArea(
+                      top: false,
+                      left: true,
+                      right: true,
+                      bottom: false,
+                      child: childWidget ?? const SizedBox.shrink(),
+                    ),
+                  ),
                 ),
               );
             },

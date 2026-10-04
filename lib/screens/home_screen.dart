@@ -24,6 +24,8 @@ import 'package:intl/intl.dart';
 import '../widgets/rating_dialog.dart';
 import '../services/rating_service.dart';
 import '../ads/banner_ad_widget.dart';
+import '../services/follow_up_service.dart';
+import 'follow_ups_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -212,6 +214,62 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          Consumer<FollowUpService>(
+            builder: (context, followUpService, child) {
+              final urgentCount = followUpService.urgentCount;
+              final pendingCount = followUpService.pendingFollowUps.length;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      urgentCount > 0
+                          ? Icons.notifications_active_rounded
+                          : Icons.event_note_rounded,
+                      color: urgentCount > 0
+                          ? const Color(0xFFFF5F5F)
+                          : const Color(0xFF006D5B),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (ctx) => const FollowUpsScreen(),
+                        ),
+                      );
+                    },
+                    tooltip: 'Follow-ups & Reminders',
+                  ),
+                  if (pendingCount > 0)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: urgentCount > 0
+                              ? const Color(0xFFFF5F5F)
+                              : const Color(0xFF006D5B),
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$pendingCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
             onPressed: () => transactionService.refresh(),

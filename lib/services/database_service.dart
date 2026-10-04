@@ -2,11 +2,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../models/transaction.dart';
 import '../models/financial_goals.dart';
+import '../models/follow_up.dart';
 
 class DatabaseService {
   static const String _transactionsBoxPrefix = 'transactions_';
   static const String _settingsBoxName = 'settings';
   static const String _goalsBoxName = 'goals';
+  static const String _followUpsBoxName = 'follow_ups';
   static const String _preferencesKey = 'preferences';
   static const String _booksKey = 'books';
   static const String _currentBookIdKey = 'currentBookId';
@@ -17,6 +19,7 @@ class DatabaseService {
   static Box<Transaction>? _activeTransactionsBox;
   static Box<Map>? _settingsBox;
   static Box<FinancialGoals>? _goalsBox;
+  static Box<FollowUp>? _followUpsBox;
 
   // Initialize Hive and open boxes
   static Future<void> initialize() async {
@@ -32,10 +35,13 @@ class DatabaseService {
       Hive.registerAdapter(TransactionTypeAdapter());
       Hive.registerAdapter(PaymentMethodAdapter());
       Hive.registerAdapter(FinancialGoalsAdapter());
+      Hive.registerAdapter(FollowUpAdapter());
+      Hive.registerAdapter(FollowUpTypeAdapter());
 
       // Open main boxes
       _settingsBox = await Hive.openBox<Map>(_settingsBoxName);
       _goalsBox = await Hive.openBox<FinancialGoals>(_goalsBoxName);
+      _followUpsBox = await Hive.openBox<FollowUp>(_followUpsBoxName);
 
       // Initialize default settings if not exists
       await _initializeDefaultSettings();
@@ -269,6 +275,36 @@ class DatabaseService {
     }
   }
 
+  static Future<void> addTransactionToBook(
+    String bookId,
+    Transaction transaction,
+  ) async {
+    try {
+      if (bookId == getCurrentBookId() && _activeTransactionsBox != null) {
+        await _activeTransactionsBox!.put(transaction.id, transaction);
+        return;
+      }
+
+      final boxName = '$_transactionsBoxPrefix$bookId';
+      Box<Transaction> targetBox;
+      if (_transactionsBoxes.containsKey(bookId)) {
+        targetBox = _transactionsBoxes[bookId]!;
+      } else {
+        targetBox = await Hive.openBox<Transaction>(boxName);
+        _transactionsBoxes[bookId] = targetBox;
+      }
+      await targetBox.put(transaction.id, transaction);
+      if (kDebugMode) {
+        print('✅ Transaction added to book $bookId: ${transaction.id}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error adding transaction to book $bookId: $e');
+      }
+      rethrow;
+    }
+  }
+
   static Future<void> updateTransaction(Transaction transaction) async {
     try {
       await _activeTransactionsBox!.put(transaction.id, transaction);
@@ -462,6 +498,28 @@ class DatabaseService {
     return _goalsBox!.watch().map((_) => getFinancialGoals());
   }
 
+  // Follow-ups CRUD
+  static Future<void> saveFollowUp(FollowUp followUp) async {
+    await _followUpsBox!.put(followUp.id, followUp);
+  }
+
+  static Future<void> deleteFollowUp(String id) async {
+    await _followUpsBox!.delete(id);
+  }
+
+  static List<FollowUp> getFollowUps({String? bookId}) {
+    if (_followUpsBox == null) return [];
+    final targetBookId = bookId ?? getCurrentBookId();
+    return _followUpsBox!.values
+        .where((f) => f.bookId == targetBookId)
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+  }
+
+  static Stream<BoxEvent> watchFollowUps() {
+    return _followUpsBox!.watch();
+  }
+
   static Future<void> clearAllData() async {
     try {
       for (final box in _transactionsBoxes.values) {
@@ -469,6 +527,7 @@ class DatabaseService {
       }
       await _settingsBox!.clear();
       await _goalsBox!.clear();
+      await _followUpsBox!.clear();
       await _initializeDefaultSettings();
       await _ensureTransactionsBoxOpen(getCurrentBookId());
       if (kDebugMode) {
@@ -491,6 +550,7 @@ class DatabaseService {
       _activeTransactionsBox = null;
       await _settingsBox?.close();
       await _goalsBox?.close();
+      await _followUpsBox?.close();
       if (kDebugMode) {
         print('✅ Database closed');
       }
@@ -507,6 +567,7 @@ class DatabaseService {
       'transactions': _activeTransactionsBox?.length ?? 0,
       'settings': _settingsBox?.length ?? 0,
       'goals': _goalsBox?.length ?? 0,
+      'followUps': _followUpsBox?.length ?? 0,
     };
   }
 
@@ -537,10 +598,15 @@ class DatabaseService {
       }
     }
 
+    final followUps = (_followUpsBox?.values.toList() ?? [])
+        .map((f) => f.toMap())
+        .toList();
+
     return {
       'transactionsByBook': transactionsByBook,
       'settings': settings,
       'goalsByBook': goalsByBook,
+      'followUps': followUps,
     };
   }
 
@@ -596,6 +662,14 @@ class DatabaseService {
           Map<String, dynamic>.from(data['goals']),
         );
         await _goalsBox!.put('current_goals_${getCurrentBookId()}', goals);
+      }
+
+      if (data.containsKey('followUps') && data['followUps'] != null) {
+        final List list = data['followUps'];
+        for (final item in list) {
+          final f = FollowUp.fromMap(Map<String, dynamic>.from(item));
+          await _followUpsBox!.put(f.id, f);
+        }
       }
 
       if (kDebugMode) {

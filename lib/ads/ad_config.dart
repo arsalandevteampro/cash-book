@@ -22,12 +22,21 @@ class AdConfig {
   static const String androidTestInterstitialId =
       'ca-app-pub-3940256099942544/1033173712';
 
-  /// Real Android Production Interstitial Ad Unit ID
+  /// Real Android Production Interstitial Ad Unit ID (Report Export & Share)
   static const String androidProductionInterstitialId =
       'ca-app-pub-7531348818625320/5834326279';
 
   /// Returns the active Android Interstitial Ad Unit ID based on [useTestAds] flag
   static String get androidInterstitialAdUnitId {
     return useTestAds ? androidTestInterstitialId : androidProductionInterstitialId;
+  }
+
+  /// Real Android Production Follow-Up Interstitial Ad Unit ID (Create & Edit)
+  static const String androidProductionFollowUpInterstitialId =
+      'ca-app-pub-7531348818625320/2870273086';
+
+  /// Returns the active Android Follow-Up Interstitial Ad Unit ID based on [useTestAds] flag
+  static String get androidFollowUpInterstitialAdUnitId {
+    return useTestAds ? androidTestInterstitialId : androidProductionFollowUpInterstitialId;
   }
 }
