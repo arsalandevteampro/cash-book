@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -152,25 +153,34 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
     if (!hasInternet) {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Row(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          backgroundColor: const Color(0xFFD32F2F),
+          duration: const Duration(seconds: 3),
+          content: const Row(
             children: [
               Icon(Icons.wifi_off_rounded, color: Colors.white, size: 20),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Internet connection is required to create or edit follow-ups.',
-                  style: TextStyle(fontWeight: FontWeight.w500),
+                  'Please check your internet',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
                 ),
               ),
             ],
           ),
-          backgroundColor: Color(0xFFD32F2F),
-          duration: Duration(seconds: 3),
         ),
       );
       return;
     }
+
 
     final finalDateTime = DateTime(
       _dueDate.year,

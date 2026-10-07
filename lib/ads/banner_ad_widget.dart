@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
+import '../services/connectivity_helper.dart';
 
 /// A reusable anchored adaptive Banner Ad widget.
 /// Automatically handles screen sizing, ad loading, error fallback, retry on failure, and proper lifecycle disposal.
@@ -24,8 +26,23 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   bool _isLoading = false;
   int? _loadedWidth;
   Timer? _retryTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   int _retryAttempt = 0;
   static const int _maxRetries = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-load banner ad when device reconnects to active internet
+    _connectivitySubscription =
+        Connectivity().onConnectivityChanged.listen((results) {
+      if (!results.contains(ConnectivityResult.none) && results.isNotEmpty) {
+        if (_bannerAd == null && !_isLoading && mounted) {
+          _loadAdaptiveAd();
+        }
+      }
+    });
+  }
 
   @override
   void didChangeDependencies() {
@@ -54,8 +71,20 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return;
     }
 
+    // Verify active internet connection before sending BannerAd request to Google AdMob
+    final hasInternet = await ConnectivityHelper.hasInternetConnection();
+    if (!hasInternet) {
+      return;
+    }
+
+    if (!mounted) return;
+    if ((_bannerAd != null && _loadedWidth == mediaWidth) || _isLoading) {
+      return;
+    }
+
     _isLoading = true;
     _loadedWidth = mediaWidth;
+
 
     // Safely dispose old ad by resetting state first so AdWidget is removed before disposal
     if (_bannerAd != null) {
@@ -157,10 +186,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _retryTimer?.cancel();
     _bannerAd?.dispose();
     super.dispose();
   }
+
 
   @override
   Widget build(BuildContext context) {

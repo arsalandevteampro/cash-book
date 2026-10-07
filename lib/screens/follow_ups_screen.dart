@@ -38,6 +38,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
 
   @override
   Widget build(BuildContext context) {
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final followUpService = context.watch<FollowUpService>();
@@ -130,6 +131,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
           ),
         ],
       ),
+
       body: Column(
         children: [
           // Top Summary Header (Receivable vs Payable)

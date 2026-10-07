@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
+import '../services/connectivity_helper.dart';
 
 /// Production-ready Interstitial Ad Manager.
 /// Preloads interstitial ads in background and handles full-screen callbacks smoothly.
@@ -18,13 +19,26 @@ class InterstitialAdManager {
   bool get isAdReady => _interstitialAd != null;
 
   /// Preload an interstitial ad in background if one is not already available or loading.
-  void preloadAd() {
+  /// Checks active internet connection first to prevent sending failed ad requests.
+  Future<void> preloadAd() async {
+    if (_interstitialAd != null || _isLoading) {
+      return;
+    }
+
+    // Verify active internet connection BEFORE sending ad request to Google AdMob
+    final hasInternet = await ConnectivityHelper.hasInternetConnection();
+    if (!hasInternet) {
+      debugPrint('=== [AdMob] No active internet. Skipping Interstitial Ad request. ===');
+      _notifyCompleters(false);
+      return;
+    }
+
     if (_interstitialAd != null || _isLoading) {
       return;
     }
 
     _isLoading = true;
-    debugPrint('=== [AdMob] Preloading Interstitial Ad... ===');
+    debugPrint('=== [AdMob] Internet active. Preloading Interstitial Ad... ===');
     InterstitialAd.load(
       adUnitId: AdConfig.androidInterstitialAdUnitId,
       request: const AdRequest(),
@@ -68,7 +82,7 @@ class InterstitialAdManager {
     }
 
     // 2. If not ready, start loading if not already loading
-    preloadAd();
+    unawaited(preloadAd());
 
     // 3. Wait up to timeout for the ad to finish loading
     final completer = Completer<bool>();
@@ -112,14 +126,14 @@ class InterstitialAdManager {
         debugPrint('=== [AdMob] Interstitial Ad Dismissed ===');
         ad.dispose();
         _interstitialAd = null;
-        preloadAd();
+        unawaited(preloadAd());
         finish();
       },
       onAdFailedToShowFullScreenContent: (ad, AdError error) {
         debugPrint('=== [AdMob] Interstitial Ad Failed To Show: ${error.message} ===');
         ad.dispose();
         _interstitialAd = null;
-        preloadAd();
+        unawaited(preloadAd());
         finish();
       },
     );

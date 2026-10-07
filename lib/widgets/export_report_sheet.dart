@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,9 @@ import '../models/transaction.dart';
 import '../services/report_export_service.dart';
 import '../services/settings_service.dart';
 import '../services/transaction_service.dart';
+import '../services/connectivity_helper.dart';
 import '../ads/interstitial_ad_manager.dart';
+
 
 Future<void> showExportReportSheet(
   BuildContext context, {
@@ -14,6 +17,7 @@ Future<void> showExportReportSheet(
   bool? hasActiveFilters,
   String? filterDescription,
 }) {
+  final parentMessenger = ScaffoldMessenger.of(context);
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -27,6 +31,7 @@ Future<void> showExportReportSheet(
       initialFilteredTransactions: initialFilteredTransactions,
       hasActiveFilters: hasActiveFilters,
       filterDescription: filterDescription,
+      parentMessenger: parentMessenger,
     ),
   );
 }
@@ -37,11 +42,13 @@ class ExportReportSheet extends StatefulWidget {
     this.initialFilteredTransactions,
     this.hasActiveFilters,
     this.filterDescription,
+    this.parentMessenger,
   });
 
   final List<Transaction>? initialFilteredTransactions;
   final bool? hasActiveFilters;
   final String? filterDescription;
+  final ScaffoldMessengerState? parentMessenger;
 
   @override
   State<ExportReportSheet> createState() => _ExportReportSheetState();
@@ -57,7 +64,15 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
   late DateTime _rangeEnd;
   bool _isDownloading = false;
   bool _isSharing = false;
+  String? _errorMessage;
+  Timer? _errorTimer;
   bool get _isExporting => _isDownloading || _isSharing;
+
+  @override
+  void dispose() {
+    _errorTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -228,7 +243,8 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
       }
 
       navigator.pop();
-      messenger.showSnackBar(
+      final targetMessenger = widget.parentMessenger ?? messenger;
+      targetMessenger.showSnackBar(
         SnackBar(
           content: Text(
             isShare
@@ -237,16 +253,17 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
           ),
         ),
       );
+
     } catch (error) {
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to ${isShare ? 'share' : 'download'} report: $error',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          _errorMessage =
+              'Failed to ${isShare ? 'share' : 'download'} report: $error';
+        });
+        _errorTimer?.cancel();
+        _errorTimer = Timer(const Duration(seconds: 5), () {
+          if (mounted) setState(() => _errorMessage = null);
+        });
       }
     } finally {
       if (mounted) {
@@ -675,74 +692,171 @@ class _ExportReportSheetState extends State<ExportReportSheet> {
                 ),
               ),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isExporting
-                        ? null
-                        : () {
-                            InterstitialAdManager.instance.showAdThen(
-                              onComplete: () => _exportReport(isShare: false),
-                            );
-                          },
-                    icon: _isDownloading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.file_download_rounded),
-                    label: Text(
-                      _isDownloading
-                          ? 'Downloading...'
-                          : 'Download ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
-                      overflow: TextOverflow.ellipsis,
+                if (_errorMessage != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD32F2F),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFFD32F2F).withValues(alpha: 0.35),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(
-                          color: Color(0xFF006D5B), width: 1.5),
-                      foregroundColor: const Color(0xFF006D5B),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.wifi_off_rounded,
+                            color: Colors.white, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            _errorTimer?.cancel();
+                            setState(() => _errorMessage = null);
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.all(4.0),
+                            child: Icon(Icons.close_rounded,
+                                size: 18, color: Colors.white),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _isExporting
-                        ? null
-                        : () {
-                            InterstitialAdManager.instance.showAdThen(
-                              onComplete: () => _exportReport(isShare: true),
-                            );
-                          },
-                    icon: _isSharing
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.share_rounded),
-                    label: Text(
-                      _isSharing
-                          ? 'Sharing...'
-                          : 'Share ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: const Color(0xFF006D5B),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isExporting
+                            ? null
+                            : () async {
+                                _errorTimer?.cancel();
+                                setState(() => _errorMessage = null);
+                                // If ad is ready, show it then export
+                                if (InterstitialAdManager.instance.isAdReady) {
+                                  InterstitialAdManager.instance.showAdThen(
+                                    onComplete: () =>
+                                        _exportReport(isShare: false),
+                                  );
+                                  return;
+                                }
+
+                                // If ad is not ready, verify if internet is active
+                                final hasInternet = await ConnectivityHelper
+                                    .hasInternetConnection();
+                                if (hasInternet) {
+                                  InterstitialAdManager.instance.showAdThen(
+                                    onComplete: () =>
+                                        _exportReport(isShare: false),
+                                  );
+                                } else {
+                                  // Offline: Download action is NOT blocked, export directly without ad request or wait
+                                  _exportReport(isShare: false);
+                                }
+                              },
+                        icon: _isDownloading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.file_download_rounded),
+                        label: Text(
+                          _isDownloading
+                              ? 'Downloading...'
+                              : 'Download ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(
+                              color: Color(0xFF006D5B), width: 1.5),
+                          foregroundColor: const Color(0xFF006D5B),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isExporting
+                            ? null
+                            : () async {
+                                _errorTimer?.cancel();
+                                setState(() => _errorMessage = null);
+                                // Strict internet verification for sharing (since share requires internet)
+                                final hasInternet = await ConnectivityHelper
+                                    .hasInternetConnection();
+                                if (!mounted) return;
+                                if (!hasInternet) {
+                                  setState(() {
+                                    _errorMessage =
+                                        'Please check your internet';
+                                  });
+                                  _errorTimer?.cancel();
+                                  _errorTimer =
+                                      Timer(const Duration(seconds: 5), () {
+                                    if (mounted) {
+                                      setState(() => _errorMessage = null);
+                                    }
+                                  });
+                                  return;
+                                }
+
+                                setState(() => _errorMessage = null);
+                                // Internet verified: show ad then share report!
+                                InterstitialAdManager.instance.showAdThen(
+                                  onComplete: () =>
+                                      _exportReport(isShare: true),
+                                );
+                              },
+                        icon: _isSharing
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.share_rounded),
+                        label: Text(
+                          _isSharing
+                              ? 'Sharing...'
+                              : 'Share ${_reportFormat == ReportFormat.pdf ? 'PDF' : 'CSV'}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          backgroundColor: const Color(0xFF006D5B),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

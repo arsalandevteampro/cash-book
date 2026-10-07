@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
+import '../services/connectivity_helper.dart';
 
 /// Dedicated manager for Follow-up Interstitial Ads (Create & Edit).
 /// Preloads interstitial ads in background and handles full-screen callbacks smoothly.
@@ -19,27 +20,34 @@ class FollowUpInterstitialAdManager {
   bool get isAdReady => _interstitialAd != null;
 
   /// Preload an interstitial ad in background if one is not already available or loading.
-  void preloadAd() {
+  /// Checks active internet connection first to prevent sending failed ad requests.
+  Future<void> preloadAd() async {
+    if (_interstitialAd != null || _isLoading) {
+      return;
+    }
+
+    // Verify active internet connection BEFORE sending ad request to Google AdMob
+    final hasInternet = await ConnectivityHelper.hasInternetConnection();
+    if (!hasInternet) {
+      _notifyCompleters(false);
+      return;
+    }
+
     if (_interstitialAd != null || _isLoading) {
       return;
     }
 
     _isLoading = true;
-    debugPrint('=== [AdMob] Preloading Follow-up Interstitial Ad... ===');
     InterstitialAd.load(
       adUnitId: AdConfig.androidFollowUpInterstitialAdUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-          debugPrint(
-              '=== [AdMob] Follow-up Interstitial Ad Loaded Successfully ===');
           _interstitialAd = ad;
           _isLoading = false;
           _notifyCompleters(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          debugPrint(
-              '=== [AdMob] Follow-up Interstitial Ad Failed to Load: ${error.message} ===');
           _interstitialAd = null;
           _isLoading = false;
           _notifyCompleters(false);
@@ -62,7 +70,7 @@ class FollowUpInterstitialAdManager {
   /// immediately so the user experience is never blocked.
   Future<void> showAdThen({
     required VoidCallback onComplete,
-    Duration timeout = const Duration(seconds: 4),
+    Duration timeout = const Duration(seconds: 5),
   }) async {
     // 1. If ad is already ready, show immediately!
     if (_interstitialAd != null) {
@@ -70,8 +78,8 @@ class FollowUpInterstitialAdManager {
       return;
     }
 
-    // 2. If not ready, start loading if not already loading
-    preloadAd();
+    // 2. If not ready, start loading if not already loading (checks internet first)
+    unawaited(preloadAd());
 
     // 3. Wait up to timeout for the ad to finish loading
     final completer = Completer<bool>();
@@ -117,7 +125,7 @@ class FollowUpInterstitialAdManager {
         debugPrint('=== [AdMob] Follow-up Interstitial Ad Dismissed ===');
         ad.dispose();
         _interstitialAd = null;
-        preloadAd();
+        unawaited(preloadAd());
         finish();
       },
       onAdFailedToShowFullScreenContent: (ad, AdError error) {
@@ -125,7 +133,7 @@ class FollowUpInterstitialAdManager {
             '=== [AdMob] Follow-up Interstitial Ad Failed To Show: ${error.message} ===');
         ad.dispose();
         _interstitialAd = null;
-        preloadAd();
+        unawaited(preloadAd());
         finish();
       },
     );

@@ -107,12 +107,12 @@ class NotificationService {
 
     final isReceive = followUp.type == FollowUpType.toReceive;
     final title = isReceive
-        ? 'Reminder: Paisa Lena Hai (${followUp.contactName})'
-        : 'Reminder: Paisa Dena Hai (${followUp.contactName})';
+        ? 'Reminder: To Receive (${followUp.contactName})'
+        : 'Reminder: To Pay (${followUp.contactName})';
 
     final body = isReceive
-        ? 'Rs ${followUp.amount.toStringAsFixed(0)} lena hai ${followUp.contactName} se. (${followUp.title})'
-        : 'Rs ${followUp.amount.toStringAsFixed(0)} dena hai ${followUp.contactName} ko. (${followUp.title})';
+        ? 'Rs ${followUp.amount.toStringAsFixed(0)} to receive from ${followUp.contactName}. (${followUp.title})'
+        : 'Rs ${followUp.amount.toStringAsFixed(0)} to pay to ${followUp.contactName}. (${followUp.title})';
 
     const androidDetails = AndroidNotificationDetails(
       _channelId,
