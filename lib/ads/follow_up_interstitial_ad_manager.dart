@@ -26,18 +26,23 @@ class FollowUpInterstitialAdManager {
       return;
     }
 
-    // Verify active internet connection BEFORE sending ad request to Google AdMob
+    // Mark as loading before the connectivity check to avoid concurrent requests.
+    _isLoading = true;
+
+    // Verify active internet connection BEFORE sending ad request to Google AdMob.
     final hasInternet = await ConnectivityHelper.hasInternetConnection();
     if (!hasInternet) {
+      _isLoading = false;
       _notifyCompleters(false);
+      debugPrint('=== [AdMob] No internet. Skipping Follow-up Interstitial Ad request. ===');
       return;
     }
 
-    if (_interstitialAd != null || _isLoading) {
+    if (_interstitialAd != null) {
+      _isLoading = false;
       return;
     }
 
-    _isLoading = true;
     InterstitialAd.load(
       adUnitId: AdConfig.androidFollowUpInterstitialAdUnitId,
       request: const AdRequest(),
@@ -72,6 +77,13 @@ class FollowUpInterstitialAdManager {
     required VoidCallback onComplete,
     Duration timeout = const Duration(seconds: 5),
   }) async {
+    final hasInternet = await ConnectivityHelper.hasInternetConnection();
+    if (!hasInternet) {
+      debugPrint('=== [AdMob] No internet. Skip Follow-up Interstitial show. ===');
+      onComplete();
+      return;
+    }
+
     // 1. If ad is already ready, show immediately!
     if (_interstitialAd != null) {
       _showLoadedAd(onComplete);

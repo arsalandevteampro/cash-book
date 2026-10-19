@@ -41,8 +41,6 @@ class _AddFollowUpScreenState extends State<AddFollowUpScreen> {
   @override
   void initState() {
     super.initState();
-    // Preload Follow-up Interstitial Ad while user fills the form
-    FollowUpInterstitialAdManager.instance.preloadAd();
 
     final item = widget.followUpToEdit ?? widget.copyFrom;
 

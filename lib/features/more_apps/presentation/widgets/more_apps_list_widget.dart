@@ -89,6 +89,10 @@ class MoreAppsListWidget extends ConsumerWidget {
                                 imageUrl: app.imageUrl,
                                 width: 46,
                                 height: 46,
+                                memCacheWidth: 120,
+                                memCacheHeight: 120,
+                                maxWidthDiskCache: 200,
+                                maxHeightDiskCache: 200,
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => Container(
                                   width: 46,

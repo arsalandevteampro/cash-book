@@ -18,28 +18,7 @@ class TransactionList extends StatelessWidget {
     final displayTransactions = transactions ?? transactionService.transactions;
     final textTheme = Theme.of(context).textTheme;
 
-    // Calculate before and after running balance for all transactions in chronological order (oldest to newest)
-    final allTxs = transactionService.transactions;
-    final sortedAll = List<Transaction>.from(allTxs)
-      ..sort((a, b) {
-        final cmp = a.date.compareTo(b.date);
-        if (cmp != 0) return cmp;
-        final idA = int.tryParse(a.id) ?? 0;
-        final idB = int.tryParse(b.id) ?? 0;
-        return idA.compareTo(idB);
-      });
-
-    final Map<String, ({double before, double after})> txBalances = {};
-    double running = 0.0;
-    for (final tx in sortedAll) {
-      final prev = running;
-      if (tx.type == TransactionType.income) {
-        running += tx.amount;
-      } else {
-        running -= tx.amount;
-      }
-      txBalances[tx.id] = (before: prev, after: running);
-    }
+    final txBalances = transactionService.txBalances;
 
     return displayTransactions.isEmpty
         ? Center(
@@ -99,6 +78,8 @@ class TransactionList extends StatelessWidget {
 }
 
 class _TransactionItem extends StatelessWidget {
+  static final DateFormat _dateFormat = DateFormat('MMM d • h:mm a');
+
   final Transaction transaction;
   final SettingsService settingsService;
   final double? beforeBalance;
@@ -271,7 +252,7 @@ class _TransactionItem extends StatelessWidget {
                         backupIcon,
                         const SizedBox(width: 4),
                         Text(
-                          DateFormat('MMM d • h:mm a').format(transaction.date),
+                          _dateFormat.format(transaction.date),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -318,7 +299,7 @@ class _TransactionItem extends StatelessWidget {
                               ),
                             ),
                             TextSpan(
-                              text: settingsService.formatCurrency(transaction.amount).replaceFirst(settingsService.currencySymbol, '').trim(),
+                              text: settingsService.formatAmount(transaction.amount),
                               style: TextStyle(
                                 fontSize: 17,
                                 color: color,

@@ -45,30 +45,26 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
     final settingsService = context.watch<SettingsService>();
     final currencySymbol = settingsService.currencySymbol;
 
-    final pendingItems = followUpService.pendingFollowUps;
-    final overdueItems = followUpService.overdueFollowUps;
-    final todayItems = followUpService.todayFollowUps;
-    final completedItems = followUpService.completedFollowUps;
-
     List<FollowUp> displayedItems;
     switch (_selectedFilter) {
       case FollowUpFilter.allPending:
-        displayedItems = pendingItems;
+        displayedItems = followUpService.pendingFollowUps;
         break;
       case FollowUpFilter.urgent:
-        displayedItems = [...overdueItems, ...todayItems];
+        displayedItems = [...followUpService.overdueFollowUps, ...followUpService.todayFollowUps];
         break;
       case FollowUpFilter.toReceive:
-        displayedItems = pendingItems
-            .where((f) => f.type == FollowUpType.toReceive)
+        displayedItems = followUpService.followUps
+            .where((f) => !f.isCompleted && f.type == FollowUpType.toReceive)
             .toList();
         break;
       case FollowUpFilter.toPay:
-        displayedItems =
-            pendingItems.where((f) => f.type == FollowUpType.toPay).toList();
+        displayedItems = followUpService.followUps
+            .where((f) => !f.isCompleted && f.type == FollowUpType.toPay)
+            .toList();
         break;
       case FollowUpFilter.completed:
-        displayedItems = completedItems;
+        displayedItems = followUpService.completedFollowUps;
         break;
     }
 
@@ -148,9 +144,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   child: _buildSummaryCard(
                     title: 'To Receive',
                     amount: followUpService.totalReceivablePending,
-                    count: pendingItems
-                        .where((f) => f.type == FollowUpType.toReceive)
-                        .length,
+                    count: followUpService.toReceivePendingCount,
                     color: const Color(0xFF00D084),
                     icon: Icons.arrow_downward_rounded,
                     currencySymbol: currencySymbol,
@@ -163,9 +157,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                   child: _buildSummaryCard(
                     title: 'To Pay',
                     amount: followUpService.totalPayablePending,
-                    count: pendingItems
-                        .where((f) => f.type == FollowUpType.toPay)
-                        .length,
+                    count: followUpService.toPayPendingCount,
                     color: const Color(0xFFFF5F5F),
                     icon: Icons.arrow_upward_rounded,
                     currencySymbol: currencySymbol,
@@ -187,15 +179,15 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
             child: Row(
               children: [
                 _buildFilterChip(
-                  label: 'Pending (${pendingItems.length})',
+                  label: 'Pending (${followUpService.pendingCount})',
                   filter: FollowUpFilter.allPending,
                   isLandscape: isLandscape,
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  label: 'Urgent (${overdueItems.length + todayItems.length})',
+                  label: 'Urgent (${followUpService.urgentCount})',
                   filter: FollowUpFilter.urgent,
-                  highlightBadge: (overdueItems.length + todayItems.length) > 0,
+                  highlightBadge: followUpService.urgentCount > 0,
                   isLandscape: isLandscape,
                 ),
                 const SizedBox(width: 8),
@@ -212,7 +204,7 @@ class _FollowUpsScreenState extends State<FollowUpsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _buildFilterChip(
-                  label: 'Completed (${completedItems.length})',
+                  label: 'Completed (${followUpService.completedCount})',
                   filter: FollowUpFilter.completed,
                   isLandscape: isLandscape,
                 ),

@@ -101,13 +101,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (freq == 'Immediately') {
       shouldBackup = true;
-    } else if (freq == 'Daily' && diff > dayMs) shouldBackup = true;
-    else if (freq == 'Weekly' && diff > 7 * dayMs) shouldBackup = true;
-    else if (freq == 'Monthly' && diff > 30 * dayMs) shouldBackup = true;
+    } else if (freq == 'Daily' && diff > dayMs) {
+      shouldBackup = true;
+    } else if (freq == 'Weekly' && diff > 7 * dayMs) {
+      shouldBackup = true;
+    } else if (freq == 'Monthly' && diff > 30 * dayMs) {
+      shouldBackup = true;
+    }
 
     if (!shouldBackup) return;
 
     final txService = Provider.of<TransactionService>(context, listen: false);
+    // CRITICAL SAFETY GUARD: Never auto-backup an empty database!
+    // Prevents wiping out user's existing Google Drive backups after reinstall or factory reset.
+    if (txService.transactions.isEmpty) return;
+
     bool hasUnsynced = false;
     for (final tx in txService.transactions) {
       final txTime = tx.updatedAt ?? int.tryParse(tx.id) ?? 0;
@@ -123,6 +131,15 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final account = await GoogleDriveService.signInSilently();
       if (account != null) {
+        // If device was freshly installed (lastBackup == 0), verify cloud doesn't already have existing data
+        if (lastBackup == 0) {
+          final cloudInfo = await GoogleDriveService.getLatestBackupInfo();
+          if (cloudInfo != null && cloudInfo.sizeBytes > 1500) {
+            // Cloud has existing records! Do not silently overwrite on initial auto-check.
+            return;
+          }
+        }
+
         final backupData = await DatabaseService.exportDataAsync();
         backupData['frequency'] = freq;
         backupData['timestamp'] = DateTime.now().toIso8601String();
@@ -150,49 +167,64 @@ class _HomeScreenState extends State<HomeScreen> {
     final settingsService = Provider.of<SettingsService>(context);
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
-    final transactions = transactionService.transactions.where((tx) {
-      final matchesSearch = tx.title.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
-      final matchesCategory =
-          _selectedCategories.isEmpty || _selectedCategories.contains(tx.category);
-      final matchesPayment =
-          _selectedPaymentMethods.isEmpty ||
-          _selectedPaymentMethods.contains(TransactionFilters.paymentLabel(tx));
-      final matchesType = _selectedType == null || tx.type == _selectedType;
-      final matchesDate = TransactionFilters.matchesDate(
-        transactionDate: tx.date,
-        selectedPeriod: _selectedPeriod,
-        customStartDate: _customStartDate,
-        customEndDate: _customEndDate,
-        singleDate: _singleDate,
-      );
+    final hasSearch = _searchQuery.trim().isNotEmpty;
+    final query = hasSearch ? _searchQuery.trim().toLowerCase() : '';
+    final hasCategories = _selectedCategories.isNotEmpty;
+    final hasPayment = _selectedPaymentMethods.isNotEmpty;
+    final hasType = _selectedType != null;
+    final hasDate = TransactionFilters.hasActiveDateFilter(_selectedPeriod);
+    final hasActiveFilters = hasCategories || hasPayment || hasType || hasDate;
 
-      return matchesSearch &&
-          matchesCategory &&
-          matchesPayment &&
-          matchesType &&
-          matchesDate;
-    }).toList();
+    final List<Transaction> transactions;
+    final double filteredBalance;
+    final double filteredIncome;
+    final double filteredExpense;
 
-    final hasActiveFilters = _selectedCategories.isNotEmpty ||
-        _selectedPaymentMethods.isNotEmpty ||
-        _selectedType != null ||
-        TransactionFilters.hasActiveDateFilter(_selectedPeriod);
-
-    // Calculate filtered totals
-    final filteredBalance = transactions.fold(0.0, (sum, item) {
-      return sum +
-          (item.type == TransactionType.income ? item.amount : -item.amount);
-    });
-
-    final filteredIncome = transactions
-        .where((tx) => tx.type == TransactionType.income)
-        .fold(0.0, (sum, item) => sum + item.amount);
-
-    final filteredExpense = transactions
-        .where((tx) => tx.type == TransactionType.expense)
-        .fold(0.0, (sum, item) => sum + item.amount);
+    if (!hasSearch && !hasActiveFilters) {
+      transactions = transactionService.transactions;
+      filteredBalance = transactionService.balance;
+      filteredIncome = transactionService.totalIncome;
+      filteredExpense = transactionService.totalExpense;
+    } else {
+      final filtered = <Transaction>[];
+      double inc = 0.0;
+      double exp = 0.0;
+      for (final tx in transactionService.transactions) {
+        if (hasSearch && !tx.title.toLowerCase().contains(query)) {
+          continue;
+        }
+        if (hasCategories && !_selectedCategories.contains(tx.category)) {
+          continue;
+        }
+        if (hasPayment &&
+            !_selectedPaymentMethods.contains(TransactionFilters.paymentLabel(tx))) {
+          continue;
+        }
+        if (hasType && tx.type != _selectedType) {
+          continue;
+        }
+        if (hasDate &&
+            !TransactionFilters.matchesDate(
+              transactionDate: tx.date,
+              selectedPeriod: _selectedPeriod,
+              customStartDate: _customStartDate,
+              customEndDate: _customEndDate,
+              singleDate: _singleDate,
+            )) {
+          continue;
+        }
+        filtered.add(tx);
+        if (tx.type == TransactionType.income) {
+          inc += tx.amount;
+        } else {
+          exp += tx.amount;
+        }
+      }
+      transactions = filtered;
+      filteredIncome = inc;
+      filteredExpense = exp;
+      filteredBalance = inc - exp;
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -217,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen> {
           Consumer<FollowUpService>(
             builder: (context, followUpService, child) {
               final urgentCount = followUpService.urgentCount;
-              final pendingCount = followUpService.pendingFollowUps.length;
+              final pendingCount = followUpService.pendingCount;
               return Stack(
                 alignment: Alignment.center,
                 children: [

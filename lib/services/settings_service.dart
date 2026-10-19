@@ -273,9 +273,10 @@ class SettingsService with ChangeNotifier {
   }
 
   // Formatting utilities
+  static final NumberFormat _numberFormat = NumberFormat('#,##0.00', 'en_US');
+
   String formatAmount(double amount) {
-    final formatter = NumberFormat('#,##0.00', 'en_US');
-    return formatter.format(amount);
+    return _numberFormat.format(amount);
   }
 
   String formatCurrency(double amount) {

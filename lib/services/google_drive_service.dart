@@ -119,8 +119,9 @@ class GoogleDriveService {
 
   /// Upload backup data to Google Drive
   static Future<BackupResult> backupToGoogleDrive(
-    Map<String, dynamic> data,
-  ) async {
+    Map<String, dynamic> data, {
+    bool forceOverwrite = false,
+  }) async {
     final user = _currentUser;
     if (user == null) {
       return BackupResult(success: false, message: 'Not signed in to Google');
@@ -158,13 +159,29 @@ class GoogleDriveService {
       final existing = await api.files.list(
         q: "name='$_backupFileName' and '$folderId' in parents and trashed=false",
         spaces: 'drive',
+        $fields: 'files(id,name,size,modifiedTime)',
       );
 
       if (existing.files != null && existing.files!.isNotEmpty) {
+        final existingFile = existing.files!.first;
+        final existingSizeBytes = int.tryParse(existingFile.size ?? '0') ?? 0;
+
+        // Safety Guard: If not forced, prevent overwriting an existing larger backup
+        // with an empty/freshly initialized backup (< 1000 bytes vs > 2000 bytes)
+        if (!forceOverwrite && bytes.length < 1000 && existingSizeBytes > 2000) {
+          return BackupResult(
+            success: false,
+            message: 'Existing cloud backup contains records ($existingSizeBytes bytes). Overwriting with empty data was prevented for safety.',
+            isSafetyBlocked: true,
+            sizeBytes: bytes.length,
+          );
+        }
+
         await api.files.update(
           drive.File()..name = _backupFileName,
-          existing.files!.first.id!,
+          existingFile.id!,
           uploadMedia: drive.Media(stream, bytes.length),
+          keepRevisionForever: true,
         );
       } else {
         await api.files.create(
@@ -187,7 +204,59 @@ class GoogleDriveService {
     }
   }
 
-  /// Download and restore data from Google Drive
+  /// Internal helper to parse and decrypt backup bytes
+  static RestoreResult _parseBackupBytes(List<int> bytes, DateTime? timestamp) {
+    try {
+      final jsonData = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+      final version = jsonData['version'] as int? ?? 1;
+      Map<String, dynamic>? dataMap;
+
+      if (version == 2) {
+        try {
+          final encryptedString = jsonData['data'] as String;
+          final decryptedString = _decryptData(encryptedString);
+          dataMap = jsonDecode(decryptedString) as Map<String, dynamic>?;
+        } catch (e) {
+          return RestoreResult(
+            success: false,
+            message: 'Failed to decrypt backup data. The data might be corrupted.',
+          );
+        }
+      } else {
+        dataMap = jsonData['data'] as Map<String, dynamic>?;
+      }
+
+      int txCount = 0;
+      if (dataMap != null) {
+        if (dataMap.containsKey('transactionsByBook')) {
+          final txByBook = dataMap['transactionsByBook'];
+          if (txByBook is Map) {
+            for (final list in txByBook.values) {
+              if (list is List) txCount += list.length;
+            }
+          }
+        } else if (dataMap.containsKey('transactions')) {
+          final list = dataMap['transactions'];
+          if (list is List) txCount += list.length;
+        }
+      }
+
+      return RestoreResult(
+        success: true,
+        message: 'Restore completed successfully!',
+        data: dataMap,
+        timestamp: timestamp,
+        transactionCount: txCount,
+      );
+    } catch (e) {
+      return RestoreResult(
+        success: false,
+        message: 'Failed to read backup data: $e',
+      );
+    }
+  }
+
+  /// Download and restore data from the latest backup in Google Drive
   static Future<RestoreResult> restoreFromGoogleDrive() async {
     final user = _currentUser;
     if (user == null) {
@@ -237,35 +306,111 @@ class GoogleDriveService {
         chunks.addAll(chunk);
       }
 
-      final jsonData = jsonDecode(utf8.decode(chunks)) as Map<String, dynamic>;
-      
-      final version = jsonData['version'] as int? ?? 1;
-      Map<String, dynamic>? dataMap;
-
-      if (version == 2) {
-        try {
-          final encryptedString = jsonData['data'] as String;
-          final decryptedString = _decryptData(encryptedString);
-          dataMap = jsonDecode(decryptedString) as Map<String, dynamic>?;
-        } catch (e) {
-          return RestoreResult(
-            success: false,
-            message: 'Failed to decrypt backup data. The data might be corrupted.',
-          );
-        }
-      } else {
-        dataMap = jsonData['data'] as Map<String, dynamic>?;
-      }
-
-      return RestoreResult(
-        success: true,
-        message: 'Restore completed successfully!',
-        data: dataMap,
-        timestamp: file.modifiedTime,
-      );
+      return _parseBackupBytes(chunks, file.modifiedTime);
     } catch (e) {
       debugPrint('Restore error: $e');
       return RestoreResult(success: false, message: 'Restore failed: $e');
+    }
+  }
+
+  /// Get list of all versions/revisions of the backup file stored on Google Drive
+  static Future<List<BackupRevision>> getBackupRevisions() async {
+    final user = _currentUser;
+    if (user == null) return [];
+
+    try {
+      final api = await _getDriveApi(user);
+      if (api == null) return [];
+
+      final folderId = await _getOrCreateFolder(api);
+      if (folderId == null) return [];
+
+      final existing = await api.files.list(
+        q: "name='$_backupFileName' and '$folderId' in parents and trashed=false",
+        spaces: 'drive',
+        $fields: 'files(id,name)',
+      );
+
+      if (existing.files == null || existing.files!.isEmpty) return [];
+
+      final fileId = existing.files!.first.id!;
+      final revList = await api.revisions.list(
+        fileId,
+        $fields: 'revisions(id,modifiedTime,size,keepForever)',
+      );
+
+      final list = <BackupRevision>[];
+      for (final r in revList.revisions ?? []) {
+        list.add(
+          BackupRevision(
+            revisionId: r.id!,
+            fileId: fileId,
+            modifiedTime: r.modifiedTime,
+            sizeBytes: int.tryParse(r.size ?? '0') ?? 0,
+          ),
+        );
+      }
+
+      // Sort newest first
+      list.sort(
+        (a, b) => (b.modifiedTime ?? DateTime(0)).compareTo(
+          a.modifiedTime ?? DateTime(0),
+        ),
+      );
+      return list;
+    } catch (e) {
+      debugPrint('Error getting revisions: $e');
+      return [];
+    }
+  }
+
+  /// Restore a specific historical revision from Google Drive
+  static Future<RestoreResult> restoreRevision(
+    String fileId,
+    String revisionId,
+  ) async {
+    final user = _currentUser;
+    if (user == null) {
+      return RestoreResult(success: false, message: 'Not signed in to Google');
+    }
+
+    try {
+      final api = await _getDriveApi(user);
+      if (api == null) {
+        return RestoreResult(
+          success: false,
+          message: 'Failed to connect to Google Drive',
+        );
+      }
+
+      final rev =
+          await api.revisions.get(
+                fileId,
+                revisionId,
+                $fields: 'id,modifiedTime',
+              )
+              as drive.Revision;
+
+      final response =
+          await api.revisions.get(
+                fileId,
+                revisionId,
+                downloadOptions: drive.DownloadOptions.fullMedia,
+              )
+              as drive.Media;
+
+      final List<int> chunks = [];
+      await for (final chunk in response.stream) {
+        chunks.addAll(chunk);
+      }
+
+      return _parseBackupBytes(chunks, rev.modifiedTime);
+    } catch (e) {
+      debugPrint('Error restoring revision: $e');
+      return RestoreResult(
+        success: false,
+        message: 'Failed to restore revision: $e',
+      );
     }
   }
 
@@ -307,12 +452,14 @@ class BackupResult {
   final String message;
   final DateTime? timestamp;
   final int? sizeBytes;
+  final bool isSafetyBlocked;
 
   BackupResult({
     required this.success,
     required this.message,
     this.timestamp,
     this.sizeBytes,
+    this.isSafetyBlocked = false,
   });
 
   String get formattedSize {
@@ -330,13 +477,37 @@ class RestoreResult {
   final String message;
   final Map<String, dynamic>? data;
   final DateTime? timestamp;
+  final int? transactionCount;
 
   RestoreResult({
     required this.success,
     required this.message,
     this.data,
     this.timestamp,
+    this.transactionCount,
   });
+}
+
+class BackupRevision {
+  final String revisionId;
+  final String fileId;
+  final DateTime? modifiedTime;
+  final int sizeBytes;
+
+  BackupRevision({
+    required this.revisionId,
+    required this.fileId,
+    this.modifiedTime,
+    required this.sizeBytes,
+  });
+
+  String get formattedSize {
+    if (sizeBytes < 1024) return '$sizeBytes B';
+    if (sizeBytes < 1024 * 1024) {
+      return '${(sizeBytes / 1024).toStringAsFixed(1)} KB';
+    }
+    return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 }
 
 class BackupInfo {
@@ -358,3 +529,4 @@ class BackupInfo {
     return '${(sizeBytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
+

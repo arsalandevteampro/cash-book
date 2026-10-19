@@ -136,14 +136,19 @@ class _AnalysisScreenState extends State<AnalysisScreen>
           children: [
             _buildFilterBar(settingsService),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildOverviewTab(transactions, settingsService),
-                  _buildCategoriesTab(transactions, settingsService),
-                  _buildTrendsTab(transactions, settingsService),
-                  _buildProgressTab(transactions, settingsService),
-                ],
+              child: Builder(
+                builder: (context) {
+                  final filteredTransactions = _getFilteredTransactions(transactions);
+                  return TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildOverviewTab(filteredTransactions, settingsService),
+                      _buildCategoriesTab(filteredTransactions, settingsService),
+                      _buildTrendsTab(filteredTransactions, settingsService),
+                      _buildProgressTab(filteredTransactions, settingsService),
+                    ],
+                  );
+                },
               ),
             ),
           ],
@@ -154,10 +159,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Widget _buildOverviewTab(
-    List<Transaction> transactions,
+    List<Transaction> filteredTransactions,
     SettingsService settingsService,
   ) {
-    final filteredTransactions = _getFilteredTransactions(transactions);
     final analysis = _calculateAnalysis(filteredTransactions);
 
     return SingleChildScrollView(
@@ -178,10 +182,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Widget _buildCategoriesTab(
-    List<Transaction> transactions,
+    List<Transaction> filteredTransactions,
     SettingsService settingsService,
   ) {
-    final filteredTransactions = _getFilteredTransactions(transactions);
     final titleData = _getTitleAnalysis(filteredTransactions, settingsService);
 
     return SingleChildScrollView(
@@ -194,10 +197,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Widget _buildTrendsTab(
-    List<Transaction> transactions,
+    List<Transaction> filteredTransactions,
     SettingsService settingsService,
   ) {
-    final filteredTransactions = _getFilteredTransactions(transactions);
     final dailyData = _getDailyTrends(filteredTransactions, settingsService);
 
     return SingleChildScrollView(
@@ -214,10 +216,9 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   Widget _buildProgressTab(
-    List<Transaction> transactions,
+    List<Transaction> filteredTransactions,
     SettingsService settingsService,
   ) {
-    final filteredTransactions = _getFilteredTransactions(transactions);
     final analysis = _calculateAnalysis(filteredTransactions);
 
     return SingleChildScrollView(
@@ -1555,13 +1556,15 @@ class _AnalysisScreenState extends State<AnalysisScreen>
   }
 
   AnalysisData _calculateAnalysis(List<Transaction> transactions) {
-    final totalIncome = transactions
-        .where((t) => t.type == TransactionType.income)
-        .fold(0.0, (sum, t) => sum + t.amount);
-
-    final totalExpense = transactions
-        .where((t) => t.type == TransactionType.expense)
-        .fold(0.0, (sum, t) => sum + t.amount);
+    double totalIncome = 0.0;
+    double totalExpense = 0.0;
+    for (final t in transactions) {
+      if (t.type == TransactionType.income) {
+        totalIncome += t.amount;
+      } else {
+        totalExpense += t.amount;
+      }
+    }
 
     return AnalysisData(
       totalIncome: totalIncome,

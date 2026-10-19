@@ -214,6 +214,8 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                       widget.app!.imageUrl,
                       width: 48,
                       height: 48,
+                      cacheWidth: 120,
+                      cacheHeight: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => Container(
                         width: 48,

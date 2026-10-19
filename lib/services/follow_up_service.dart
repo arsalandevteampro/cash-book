@@ -12,8 +12,27 @@ class FollowUpService with ChangeNotifier {
   bool _isLoading = false;
   static const _uuid = Uuid();
 
+  int _pendingCount = 0;
+  int _completedCount = 0;
+  int _overdueCount = 0;
+  int _todayCount = 0;
+  int _toReceivePendingCount = 0;
+  int _toPayPendingCount = 0;
+  double _totalReceivablePending = 0.0;
+  double _totalPayablePending = 0.0;
+
   List<FollowUp> get followUps => List.unmodifiable(_followUps);
   bool get isLoading => _isLoading;
+
+  int get pendingCount => _pendingCount;
+  int get completedCount => _completedCount;
+  int get overdueCount => _overdueCount;
+  int get todayCount => _todayCount;
+  int get toReceivePendingCount => _toReceivePendingCount;
+  int get toPayPendingCount => _toPayPendingCount;
+  double get totalReceivablePending => _totalReceivablePending;
+  double get totalPayablePending => _totalPayablePending;
+  int get urgentCount => _overdueCount + _todayCount;
 
   List<FollowUp> get pendingFollowUps =>
       _followUps.where((f) => !f.isCompleted).toList();
@@ -30,18 +49,45 @@ class FollowUpService with ChangeNotifier {
   List<FollowUp> get upcomingFollowUps =>
       _followUps.where((f) => !f.isCompleted && !f.isOverdue && !f.isDueToday).toList();
 
-  double get totalReceivablePending => _followUps
-      .where((f) => !f.isCompleted && f.type == FollowUpType.toReceive)
-      .fold(0.0, (sum, f) => sum + f.amount);
-
-  double get totalPayablePending => _followUps
-      .where((f) => !f.isCompleted && f.type == FollowUpType.toPay)
-      .fold(0.0, (sum, f) => sum + f.amount);
-
-  int get urgentCount => overdueFollowUps.length + todayFollowUps.length;
-
   FollowUpService() {
     loadFollowUps();
+  }
+
+  void _recalculateCounts() {
+    int pending = 0;
+    int completed = 0;
+    int overdue = 0;
+    int today = 0;
+    int toReceive = 0;
+    int toPay = 0;
+    double recPending = 0.0;
+    double payPending = 0.0;
+
+    for (final f in _followUps) {
+      if (f.isCompleted) {
+        completed++;
+      } else {
+        pending++;
+        if (f.isOverdue) overdue++;
+        if (f.isDueToday) today++;
+        if (f.type == FollowUpType.toReceive) {
+          toReceive++;
+          recPending += f.amount;
+        } else if (f.type == FollowUpType.toPay) {
+          toPay++;
+          payPending += f.amount;
+        }
+      }
+    }
+
+    _pendingCount = pending;
+    _completedCount = completed;
+    _overdueCount = overdue;
+    _todayCount = today;
+    _toReceivePendingCount = toReceive;
+    _toPayPendingCount = toPay;
+    _totalReceivablePending = recPending;
+    _totalPayablePending = payPending;
   }
 
   Future<void> loadFollowUps() async {
@@ -50,6 +96,7 @@ class FollowUpService with ChangeNotifier {
 
     try {
       _followUps = DatabaseService.getFollowUps();
+      _recalculateCounts();
       NotificationService.instance.rescheduleAll(_followUps);
     } catch (e) {
       if (kDebugMode) {

@@ -11,14 +11,23 @@ class TransactionService with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
+  double _balance = 0.0;
+  double _totalIncome = 0.0;
+  double _totalExpense = 0.0;
+  Map<String, ({double before, double after})> _txBalances = const {};
+  List<String> _recentTitles = const [];
+
   UnmodifiableListView<Transaction> get transactions =>
       UnmodifiableListView(_transactions);
   List<Map<String, dynamic>> get books => List.unmodifiable(_books);
   String get currentBookId => _currentBookId;
   String get currentBookName {
-    final book = _books.where((b) => b['id'] == _currentBookId).toList();
-    if (book.isEmpty) return 'My Book';
-    return (book.first['name'] as String?) ?? 'My Book';
+    for (final book in _books) {
+      if (book['id'] == _currentBookId) {
+        return (book['name'] as String?) ?? 'My Book';
+      }
+    }
+    return 'My Book';
   }
 
   /// Breadcrumb path for the current book, e.g. [Main, Business, Store 1]
@@ -30,31 +39,56 @@ class TransactionService with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  double get balance => _transactions.fold(0.0, (sum, item) {
-    return sum +
-        (item.type == TransactionType.income ? item.amount : -item.amount);
-  });
+  double get balance => _balance;
+  double get totalIncome => _totalIncome;
+  double get totalExpense => _totalExpense;
+  Map<String, ({double before, double after})> get txBalances => _txBalances;
+  List<String> get recentTitles => _recentTitles;
 
-  double get totalIncome => _transactions
-      .where((tx) => tx.type == TransactionType.income)
-      .fold(0.0, (sum, item) => sum + item.amount);
-
-  double get totalExpense => _transactions
-      .where((tx) => tx.type == TransactionType.expense)
-      .fold(0.0, (sum, item) => sum + item.amount);
-
-  /// Recent unique transaction titles sorted by recency (newest first).
-  List<String> get recentTitles {
+  void _recalculateTotals() {
+    double income = 0.0;
+    double expense = 0.0;
     final seen = <String>{};
     final titles = <String>[];
+
     for (final tx in _transactions) {
+      if (tx.type == TransactionType.income) {
+        income += tx.amount;
+      } else {
+        expense += tx.amount;
+      }
       final t = tx.title.trim();
-      if (t.isNotEmpty && seen.add(t.toLowerCase())) {
+      if (t.isNotEmpty && titles.length < 100 && seen.add(t.toLowerCase())) {
         titles.add(t);
-        if (titles.length >= 100) break;
       }
     }
-    return titles;
+    _totalIncome = income;
+    _totalExpense = expense;
+    _balance = income - expense;
+    _recentTitles = List.unmodifiable(titles);
+
+    // Calculate before and after running balance for all transactions in chronological order (oldest to newest)
+    final sortedAll = List<Transaction>.from(_transactions)
+      ..sort((a, b) {
+        final cmp = a.date.compareTo(b.date);
+        if (cmp != 0) return cmp;
+        final idA = int.tryParse(a.id) ?? 0;
+        final idB = int.tryParse(b.id) ?? 0;
+        return idA.compareTo(idB);
+      });
+
+    final Map<String, ({double before, double after})> balances = {};
+    double running = 0.0;
+    for (final tx in sortedAll) {
+      final prev = running;
+      if (tx.type == TransactionType.income) {
+        running += tx.amount;
+      } else {
+        running -= tx.amount;
+      }
+      balances[tx.id] = (before: prev, after: running);
+    }
+    _txBalances = balances;
   }
 
   // Initialize with Hive database
@@ -69,6 +103,7 @@ class TransactionService with ChangeNotifier {
 
       // Sort by date (newest first)
       _transactions.sort((a, b) => b.date.compareTo(a.date));
+      _recalculateTotals();
 
       _setError(null);
       if (kDebugMode) {
@@ -113,6 +148,7 @@ class TransactionService with ChangeNotifier {
         0,
         newTransaction,
       ); // Insert at beginning for newest first
+      _recalculateTotals();
       _setError(null);
       notifyListeners();
 
@@ -142,6 +178,7 @@ class TransactionService with ChangeNotifier {
       );
       if (txIndex >= 0) {
         _transactions[txIndex] = txToSave;
+        _recalculateTotals();
         _setError(null);
         notifyListeners();
 
@@ -164,6 +201,7 @@ class TransactionService with ChangeNotifier {
 
       // Update local list
       _transactions.removeWhere((tx) => tx.id == id);
+      _recalculateTotals();
       _setError(null);
       notifyListeners();
 
