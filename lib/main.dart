@@ -19,8 +19,6 @@ import 'services/notification_service.dart';
 import 'services/push_notification_service.dart';
 import 'widgets/app_lock_wrapper.dart';
 import 'theme/app_theme.dart';
-import 'ads/interstitial_ad_manager.dart';
-import 'ads/follow_up_interstitial_ad_manager.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,8 +47,6 @@ Future<void> main() async {
 Future<void> _initMobileAds() async {
   try {
     await MobileAds.instance.initialize();
-    InterstitialAdManager.instance.preloadAd();
-    FollowUpInterstitialAdManager.instance.preloadAd();
   } catch (e) {
     debugPrint("Google Mobile Ads initialization failed: $e");
   }
@@ -73,6 +69,7 @@ class MyApp extends StatelessWidget {
       child: provider_pkg.Consumer<SettingsService>(
         builder: (context, settingsService, child) {
           return MaterialApp(
+            navigatorKey: PushNotificationService.navigatorKey,
             scaffoldMessengerKey: PushNotificationService.scaffoldMessengerKey,
             title: 'Cash Book',
             theme: AppTheme.lightTheme,

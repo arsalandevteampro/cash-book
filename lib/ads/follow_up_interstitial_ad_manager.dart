@@ -48,11 +48,13 @@ class FollowUpInterstitialAdManager {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
+          debugPrint('=== [AdMob] Follow-up Interstitial Ad Loaded Successfully ===');
           _interstitialAd = ad;
           _isLoading = false;
           _notifyCompleters(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
+          debugPrint('=== [AdMob] Follow-up Interstitial Ad Failed To Load: ${error.message} ===');
           _interstitialAd = null;
           _isLoading = false;
           _notifyCompleters(false);
@@ -71,26 +73,20 @@ class FollowUpInterstitialAdManager {
   }
 
   /// Show the interstitial ad if available, or wait briefly (up to [timeout]) if it is loading.
-  /// Then execute [onComplete]. If the ad is not ready or times out, [onComplete] is executed
-  /// immediately so the user experience is never blocked.
+  /// Then execute [onComplete]. If the ad is already cached in memory, it renders immediately (0ms).
   Future<void> showAdThen({
     required VoidCallback onComplete,
-    Duration timeout = const Duration(seconds: 5),
+    Duration timeout = const Duration(seconds: 4),
   }) async {
-    final hasInternet = await ConnectivityHelper.hasInternetConnection();
-    if (!hasInternet) {
-      debugPrint('=== [AdMob] No internet. Skip Follow-up Interstitial show. ===');
-      onComplete();
-      return;
-    }
-
-    // 1. If ad is already ready, show immediately!
+    // 1. If ad is ALREADY ready (preloaded during form entry), show immediately!
+    // No duplicate HTTP ping is needed because the creative is already cached locally.
     if (_interstitialAd != null) {
+      debugPrint('=== [AdMob] Preloaded Follow-up Ad is ready. Showing instantly! ===');
       _showLoadedAd(onComplete);
       return;
     }
 
-    // 2. If not ready, start loading if not already loading (checks internet first)
+    // 2. If not ready, start loading if not already loading (preloadAd verifies internet)
     unawaited(preloadAd());
 
     // 3. Wait up to timeout for the ad to finish loading
@@ -105,6 +101,7 @@ class FollowUpInterstitialAdManager {
     }
 
     if (loaded && _interstitialAd != null) {
+      debugPrint('=== [AdMob] Follow-up Ad finished loading just in time. Showing! ===');
       _showLoadedAd(onComplete);
     } else {
       debugPrint(

@@ -337,6 +337,27 @@ class _AppTestingGateSheetState extends ConsumerState<AppTestingGateSheet> {
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall,
                     ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade500.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.amber.shade600.withValues(alpha: 0.35)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline_rounded, color: Colors.amber.shade800, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Please make sure Google Play Store is switched to this account ($userEmail) so you can install the app.',
+                              style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,

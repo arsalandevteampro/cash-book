@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../features/app_config/presentation/widgets/beta_testing_apps_sheet.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -15,6 +16,9 @@ class PushNotificationService {
 
   static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
       GlobalKey<ScaffoldMessengerState>();
+
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
   bool _initialized = false;
@@ -45,17 +49,39 @@ class PushNotificationService {
 
       // Handle message when user tapped notification while app was in background
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('FCM App opened from notification: ${message.data}');
+        _handleNotificationTap(message);
       });
 
       // Check if opened from a terminated state
       final initialMessage = await _fcm.getInitialMessage();
       if (initialMessage != null) {
-        debugPrint('FCM App opened from terminated state: ${initialMessage.data}');
+        _handleNotificationTap(initialMessage);
       }
     } catch (e) {
       debugPrint('Error initializing FCM: $e');
     }
+  }
+
+  /// Handle opening testing apps hub when user taps a notification
+  void _handleNotificationTap(RemoteMessage message) {
+    debugPrint('FCM App opened from notification: ${message.data}');
+    _showBetaTestingSheetWhenReady();
+  }
+
+  void _showBetaTestingSheetWhenReady() {
+    void tryShow(int attempt) {
+      final context = navigatorKey.currentContext;
+      if (context != null && context.mounted) {
+        BetaTestingAppsSheet.show(context);
+      } else if (attempt < 15) {
+        Future.delayed(
+          const Duration(milliseconds: 300),
+          () => tryShow(attempt + 1),
+        );
+      }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => tryShow(0));
   }
 
   /// Get device FCM token

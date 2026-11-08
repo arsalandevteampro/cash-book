@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -8,6 +9,8 @@ class AppLockService extends ChangeNotifier {
   static const String _keySavedPin = 'app_lock_saved_pin';
   static const String _keySavedPattern = 'app_lock_saved_pattern';
   static const String _keyBiometricEnabled = 'app_lock_biometric_enabled';
+  static const String _keyPrivacyVeilEnabled = 'app_lock_privacy_veil_enabled';
+  static const MethodChannel _securityChannel = MethodChannel('com.arsalandev.cashbook/security');
 
   final LocalAuthentication _localAuth = LocalAuthentication();
 
@@ -16,6 +19,7 @@ class AppLockService extends ChangeNotifier {
   String _savedPin = '';
   String _savedPattern = '';
   bool _isBiometricEnabled = true;
+  bool _isPrivacyVeilEnabled = false;
   bool _isAuthenticating = false;
 
   bool get isLockEnabled => _isLockEnabled;
@@ -23,6 +27,7 @@ class AppLockService extends ChangeNotifier {
   String get savedPin => _savedPin;
   String get savedPattern => _savedPattern;
   bool get isBiometricEnabled => _isBiometricEnabled;
+  bool get isPrivacyVeilEnabled => _isPrivacyVeilEnabled;
   bool get isAuthenticating => _isAuthenticating;
   bool get hasPin => _savedPin.isNotEmpty;
   bool get hasPattern => _savedPattern.isNotEmpty;
@@ -38,6 +43,8 @@ class AppLockService extends ChangeNotifier {
     _savedPin = prefs.getString(_keySavedPin) ?? '';
     _savedPattern = prefs.getString(_keySavedPattern) ?? '';
     _isBiometricEnabled = prefs.getBool(_keyBiometricEnabled) ?? true;
+    _isPrivacyVeilEnabled = prefs.getBool(_keyPrivacyVeilEnabled) ?? false;
+    await _syncNativeSecureMode(_isPrivacyVeilEnabled);
     notifyListeners();
   }
 
@@ -74,6 +81,24 @@ class AppLockService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyBiometricEnabled, value);
     notifyListeners();
+  }
+
+  Future<void> setPrivacyVeilEnabled(bool value) async {
+    _isPrivacyVeilEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyPrivacyVeilEnabled, value);
+    await _syncNativeSecureMode(value);
+    notifyListeners();
+  }
+
+  Future<void> _syncNativeSecureMode(bool enabled) async {
+    try {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        await _securityChannel.invokeMethod('setSecureMode', {'enabled': enabled});
+      }
+    } catch (e) {
+      debugPrint('SecurityChannel setSecureMode error: $e');
+    }
   }
 
   /// Check if hardware supports biometrics / fingerprint

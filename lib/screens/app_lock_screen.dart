@@ -354,7 +354,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
             padding: const EdgeInsets.symmetric(vertical: 6.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: row.map((num) => _buildKeypadButton(num, theme)).toList(),
+              children: row.map((digit) => _buildKeypadButton(digit, theme)).toList(),
             ),
           ),
         Padding(

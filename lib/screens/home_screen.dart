@@ -1047,10 +1047,13 @@ class _HomeScreenState extends State<HomeScreen> {
     BuildContext context,
     SettingsService settingsService,
   ) {
+    final allTransactions =
+        Provider.of<TransactionService>(context, listen: false).transactions;
+
     final allCategories = {
       ...AppConstants.defaultCategories,
       ...settingsService.customCategories,
-      ...Provider.of<TransactionService>(context, listen: false).transactions.map((tx) => tx.category),
+      ...allTransactions.map((tx) => tx.category),
     }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     final payments = {
@@ -1063,267 +1066,511 @@ class _HomeScreenState extends State<HomeScreen> {
       ...settingsService.customPaymentMethods,
     }.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
+    // Local draft state — isolated to modal to eliminate background recompute lag!
+    Set<String> draftCategories = Set.from(_selectedCategories);
+    Set<String> draftPaymentMethods = Set.from(_selectedPaymentMethods);
+    TransactionType? draftType = _selectedType;
+    String? draftPeriod = _selectedPeriod;
+    DateTime? draftStartDate = _customStartDate;
+    DateTime? draftEndDate = _customEndDate;
+    DateTime? draftSingleDate = _singleDate;
+
+    // Fast in-memory match counter for dynamic preview on the Apply button
+    int countMatches() {
+      int count = 0;
+      for (final tx in allTransactions) {
+        if (draftCategories.isNotEmpty && !draftCategories.contains(tx.category)) {
+          continue;
+        }
+        if (draftPaymentMethods.isNotEmpty &&
+            !draftPaymentMethods.contains(TransactionFilters.paymentLabel(tx))) {
+          continue;
+        }
+        if (draftType != null && tx.type != draftType) {
+          continue;
+        }
+        if (draftPeriod != null &&
+            !TransactionFilters.matchesDate(
+              transactionDate: tx.date,
+              selectedPeriod: draftPeriod,
+              customStartDate: draftStartDate,
+              customEndDate: draftEndDate,
+              singleDate: draftSingleDate,
+            )) {
+          continue;
+        }
+        count++;
+      }
+      return count;
+    }
+
+    IconData getPaymentIcon(String method) {
+      switch (method.toLowerCase()) {
+        case 'cash':
+          return Icons.payments_rounded;
+        case 'online':
+          return Icons.language_rounded;
+        case 'card':
+          return Icons.credit_card_rounded;
+        case 'bank transfer':
+        case 'bank':
+          return Icons.account_balance_rounded;
+        case 'upi':
+          return Icons.qr_code_rounded;
+        default:
+          return Icons.wallet_rounded;
+      }
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (BuildContext context, StateSetter setModalState) {
-            return SingleChildScrollView(
-              child: Container(
-              padding: const EdgeInsets.all(24),
+          builder: (BuildContext modalContext, StateSetter setModalState) {
+            final theme = Theme.of(modalContext);
+            final matchCount = countMatches();
+            final hasDraftFilters = draftCategories.isNotEmpty ||
+                draftPaymentMethods.isNotEmpty ||
+                draftType != null ||
+                TransactionFilters.hasActiveDateFilter(draftPeriod);
+
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(modalContext).size.height * 0.88,
+              ),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Filters',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                  // 1. Drag Handle
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurfaceVariant
+                            .withValues(alpha: 0.35),
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          setModalState(() {
-                            _selectedCategories.clear();
-                            _selectedPaymentMethods.clear();
-                            _selectedType = null;
-                            _selectedPeriod = null;
-                            _customStartDate = null;
-                            _customEndDate = null;
-                            _singleDate = null;
-                          });
-                          setState(() {});
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Clear All'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Date',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('All Time'),
-                        selected:
-                            _selectedPeriod == null ||
-                            _selectedPeriod == 'All Time',
-                        onSelected: (selected) {
-                          setModalState(() {
-                            _selectedPeriod = selected ? 'All Time' : null;
-                            _customStartDate = null;
-                            _customEndDate = null;
-                            _singleDate = null;
-                          });
-                          setState(() {});
-                        },
-                      ),
-                      ...TransactionFilters.presetPeriods.map((period) {
-                        return ChoiceChip(
-                          label: Text(period),
-                          selected: _selectedPeriod == period,
-                          onSelected: (selected) {
-                            setModalState(() {
-                              _selectedPeriod = selected ? period : null;
-                              _customStartDate = null;
-                              _customEndDate = null;
-                              _singleDate = null;
-                            });
-                            setState(() {});
-                          },
-                        );
-                      }),
-                      ChoiceChip(
-                        label: Text(
-                          _singleDate != null
-                              ? DateFormat('MMM d').format(_singleDate!)
-                              : 'Pick Date',
+
+                  // 2. Header: Title & Clear/Reset Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20.0, vertical: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.tune_rounded,
+                              size: 22,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Filters',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        selected: _selectedPeriod == 'Single Date',
-                        onSelected: (selected) async {
-                          if (!selected) return;
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _singleDate ?? DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now(),
-                          );
-                          if (picked != null) {
-                            setModalState(() {
-                              _selectedPeriod = 'Single Date';
-                              _singleDate = picked;
-                              _customStartDate = null;
-                              _customEndDate = null;
-                            });
-                            setState(() {});
-                          }
-                        },
-                      ),
-                      ChoiceChip(
-                        label: Text(
-                          _customStartDate != null && _customEndDate != null
-                              ? '${DateFormat('MMM d').format(_customStartDate!)} - ${DateFormat('MMM d').format(_customEndDate!)}'
-                              : 'Custom Range',
-                        ),
-                        selected: _selectedPeriod == 'Custom',
-                        onSelected: (selected) async {
-                          if (!selected) return;
-                          final picked = await showDateRangePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now(),
-                            initialDateRange:
-                                _customStartDate != null &&
-                                    _customEndDate != null
-                                ? DateTimeRange(
-                                    start: _customStartDate!,
-                                    end: _customEndDate!,
-                                  )
-                                : null,
-                          );
-                          if (picked != null) {
-                            setModalState(() {
-                              _selectedPeriod = 'Custom';
-                              _customStartDate = picked.start;
-                              _customEndDate = picked.end;
-                              _singleDate = null;
-                            });
-                            setState(() {});
-                          }
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Transaction Type',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                        if (hasDraftFilters)
+                          TextButton.icon(
+                            onPressed: () {
+                              setModalState(() {
+                                draftCategories.clear();
+                                draftPaymentMethods.clear();
+                                draftType = null;
+                                draftPeriod = null;
+                                draftStartDate = null;
+                                draftEndDate = null;
+                                draftSingleDate = null;
+                              });
+                            },
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Reset All'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red.shade600,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ChoiceChip(
-                        label: const Text('Income'),
-                        selected: _selectedType == TransactionType.income,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            _selectedType = selected ? TransactionType.income : null;
-                          });
-                          setState(() {});
-                        },
+                  const Divider(height: 1),
+
+                  // 3. Scrollable Filter Content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20.0, vertical: 12.0),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Transaction Type Selector ────────────────
+                          Text(
+                            'Transaction Type',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              ChoiceChip(
+                                label: const Text('All'),
+                                selected: draftType == null,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setModalState(() => draftType = null);
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                avatar: const Icon(
+                                  Icons.arrow_downward_rounded,
+                                  size: 16,
+                                  color: Colors.green,
+                                ),
+                                label: const Text('Income'),
+                                selected: draftType == TransactionType.income,
+                                onSelected: (selected) {
+                                  setModalState(() => draftType =
+                                      selected ? TransactionType.income : null);
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                avatar: const Icon(
+                                  Icons.arrow_upward_rounded,
+                                  size: 16,
+                                  color: Colors.red,
+                                ),
+                                label: const Text('Expense'),
+                                selected: draftType == TransactionType.expense,
+                                onSelected: (selected) {
+                                  setModalState(() => draftType =
+                                      selected ? TransactionType.expense : null);
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── Date Range Selector ──────────────────────
+                          Text(
+                            'Date Range',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: [
+                              ChoiceChip(
+                                label: const Text('All Time'),
+                                selected: draftPeriod == null ||
+                                    draftPeriod == 'All Time',
+                                onSelected: (selected) {
+                                  setModalState(() {
+                                    draftPeriod = selected ? 'All Time' : null;
+                                    draftStartDate = null;
+                                    draftEndDate = null;
+                                    draftSingleDate = null;
+                                  });
+                                },
+                              ),
+                              ...TransactionFilters.presetPeriods.map((period) {
+                                return ChoiceChip(
+                                  label: Text(period),
+                                  selected: draftPeriod == period,
+                                  onSelected: (selected) {
+                                    setModalState(() {
+                                      draftPeriod = selected ? period : null;
+                                      draftStartDate = null;
+                                      draftEndDate = null;
+                                      draftSingleDate = null;
+                                    });
+                                  },
+                                );
+                              }),
+                              ChoiceChip(
+                                avatar: const Icon(Icons.calendar_month_rounded,
+                                    size: 16),
+                                label: Text(
+                                  draftSingleDate != null
+                                      ? DateFormat('MMM d, yyyy')
+                                          .format(draftSingleDate!)
+                                      : 'Specific Date',
+                                ),
+                                selected: draftPeriod == 'Single Date',
+                                onSelected: (selected) async {
+                                  if (!selected) return;
+                                  final picked = await showDatePicker(
+                                    context: modalContext,
+                                    initialDate:
+                                        draftSingleDate ?? DateTime.now(),
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() {
+                                      draftPeriod = 'Single Date';
+                                      draftSingleDate = picked;
+                                      draftStartDate = null;
+                                      draftEndDate = null;
+                                    });
+                                  }
+                                },
+                              ),
+                              ChoiceChip(
+                                avatar: const Icon(Icons.date_range_rounded,
+                                    size: 16),
+                                label: Text(
+                                  draftStartDate != null && draftEndDate != null
+                                      ? '${DateFormat('MMM d').format(draftStartDate!)} - ${DateFormat('MMM d').format(draftEndDate!)}'
+                                      : 'Custom Range',
+                                ),
+                                selected: draftPeriod == 'Custom',
+                                onSelected: (selected) async {
+                                  if (!selected) return;
+                                  final picked = await showDateRangePicker(
+                                    context: modalContext,
+                                    firstDate: DateTime(2020),
+                                    lastDate: DateTime.now(),
+                                    initialDateRange: draftStartDate != null &&
+                                            draftEndDate != null
+                                        ? DateTimeRange(
+                                            start: draftStartDate!,
+                                            end: draftEndDate!,
+                                          )
+                                        : null,
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() {
+                                      draftPeriod = 'Custom';
+                                      draftStartDate = picked.start;
+                                      draftEndDate = picked.end;
+                                      draftSingleDate = null;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── Categories Selector ──────────────────────
+                          Row(
+                            children: [
+                              Text(
+                                'Category',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              if (draftCategories.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${draftCategories.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: allCategories.map((cat) {
+                              final isSelected = draftCategories.contains(cat);
+                              return FilterChip(
+                                label: Text(cat),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  setModalState(() {
+                                    if (selected) {
+                                      draftCategories.add(cat);
+                                    } else {
+                                      draftCategories.remove(cat);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // ── Payment Methods Selector ─────────────────
+                          Row(
+                            children: [
+                              Text(
+                                'Payment Method',
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
+                              if (draftPaymentMethods.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 7, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primaryContainer,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '${draftPaymentMethods.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 6,
+                            children: payments.map((method) {
+                              final isSelected =
+                                  draftPaymentMethods.contains(method);
+                              return FilterChip(
+                                avatar: Icon(
+                                  getPaymentIcon(method),
+                                  size: 16,
+                                  color: isSelected
+                                      ? theme.colorScheme.onSecondaryContainer
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                                label: Text(method),
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  setModalState(() {
+                                    if (selected) {
+                                      draftPaymentMethods.add(method);
+                                    } else {
+                                      draftPaymentMethods.remove(method);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      ChoiceChip(
-                        label: const Text('Expense'),
-                        selected: _selectedType == TransactionType.expense,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            _selectedType = selected ? TransactionType.expense : null;
-                          });
-                          setState(() {});
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Category',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: allCategories.map((cat) {
-                      final isSelected = _selectedCategories.contains(cat);
-                      return FilterChip(
-                        label: Text(cat),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            if (selected) {
-                              _selectedCategories.add(cat);
-                            } else {
-                              _selectedCategories.remove(cat);
-                            }
-                          });
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Payment Method',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+
+                  // 4. Pinned Sticky Action Footer
+                  Container(
+                    padding: EdgeInsets.only(
+                      left: 20,
+                      right: 20,
+                      top: 12,
+                      bottom: MediaQuery.of(modalContext).padding.bottom + 12,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
-                    children: payments.map((method) {
-                      final isSelected = _selectedPaymentMethods.contains(method);
-                      return FilterChip(
-                        label: Text(method),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          setModalState(() {
-                            if (selected) {
-                              _selectedPaymentMethods.add(method);
-                            } else {
-                              _selectedPaymentMethods.remove(method);
-                            }
-                          });
-                          setState(() {});
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      border: Border(
+                        top: BorderSide(
+                          color: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.5),
                         ),
                       ),
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text(
-                        'Apply Filters',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          offset: const Offset(0, -4),
+                          blurRadius: 10,
                         ),
-                      ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF006D5B),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 1,
+                            ),
+                            onPressed: () {
+                              // Commit draft changes to parent state and pop!
+                              setState(() {
+                                _selectedCategories.clear();
+                                _selectedCategories.addAll(draftCategories);
+                                _selectedPaymentMethods.clear();
+                                _selectedPaymentMethods.addAll(draftPaymentMethods);
+                                _selectedType = draftType;
+                                _selectedPeriod = draftPeriod;
+                                _customStartDate = draftStartDate;
+                                _customEndDate = draftEndDate;
+                                _singleDate = draftSingleDate;
+                              });
+                              Navigator.pop(modalContext);
+                            },
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: Text(
+                              matchCount == 0
+                                  ? 'Apply Filters (0 matches)'
+                                  : 'Apply Filters ($matchCount ${matchCount == 1 ? 'match' : 'matches'})',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16), // Bottom padding
                 ],
               ),
-            ),
             );
           },
         );

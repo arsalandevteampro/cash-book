@@ -3,6 +3,7 @@ package com.arsalandev.cashbook
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.enableEdgeToEdge
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -10,6 +11,7 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
     private val CHANNEL = "com.arsalandev.cashbook/whatsapp_launcher"
+    private val SECURITY_CHANNEL = "com.arsalandev.cashbook/security"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -67,6 +69,31 @@ class MainActivity : FlutterFragmentActivity() {
                         }
                     } catch (e: Exception) {
                         result.error("LAUNCH_FAILED", e.message, null)
+                    }
+                }
+                else -> {
+                    result.notImplemented()
+                }
+            }
+        }
+
+        // Privacy & Security Channel (FLAG_SECURE to obscure Recent Apps Task Switcher & prevent shoulder surfing)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SECURITY_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "setSecureMode" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: true
+                    try {
+                        if (enabled) {
+                            window.setFlags(
+                                WindowManager.LayoutParams.FLAG_SECURE,
+                                WindowManager.LayoutParams.FLAG_SECURE
+                            )
+                        } else {
+                            window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                        }
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("SECURE_FLAG_FAILED", e.message, null)
                     }
                 }
                 else -> {

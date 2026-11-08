@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand dark background color for Android Cold Start Splash to eliminate white flash in Dark Mode -->
+    <color name="splash_color">#070D0C</color>
+</resources>
+

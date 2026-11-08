@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../services/google_drive_service.dart';
 import '../../../../services/push_notification_service.dart';
+import '../../../../widgets/app_loading_view.dart';
 import '../../data/models/access_request_model.dart';
 import '../../services/access_request_rate_limiter.dart';
 import '../providers/app_config_providers.dart';
@@ -127,10 +128,8 @@ class _TestingGateScreenState extends ConsumerState<TestingGateScreen> {
         }
         return _buildGateUI();
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+      loading: () => const AppLoadingView(
+        message: 'Starting Cash Book...',
       ),
       error: (e, _) => Scaffold(
         body: Center(

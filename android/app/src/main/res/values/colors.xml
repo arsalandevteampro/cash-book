@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Clean White background matching app icon background for seamless startup without square border -->
+    <color name="splash_color">#FFFFFF</color>
+</resources>
+

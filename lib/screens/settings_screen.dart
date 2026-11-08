@@ -111,7 +111,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, snapshot) {
                 final version = snapshot.data != null
                     ? 'Version ${snapshot.data!.version} (${snapshot.data!.buildNumber})'
-                    : 'Version 1.1.0';
+                    : 'Version 1.1.1';
 
                 return ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -133,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     showAboutDialog(
                       context: context,
                       applicationName: 'Cash Book',
-                      applicationVersion: snapshot.data?.version ?? '1.1.0',
+                      applicationVersion: snapshot.data?.version ?? '1.1.1',
                       applicationLegalese: '© 2024 Your Company',
                       children: <Widget>[
                         const SizedBox(height: 15),
@@ -587,6 +587,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
             },
           ),
         ],
+        const Divider(height: 16),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          secondary: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.visibility_off_rounded,
+              color: theme.colorScheme.primary,
+              size: 20,
+            ),
+          ),
+          title: const Text('Recent Apps Privacy Veil'),
+          subtitle: const Text(
+            'Obscure financial ledger in task switcher to prevent shoulder surfing',
+          ),
+          value: lockService.isPrivacyVeilEnabled,
+          onChanged: (bool value) {
+            lockService.setPrivacyVeilEnabled(value);
+          },
+        ),
       ],
     );
   }

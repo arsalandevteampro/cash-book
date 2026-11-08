@@ -1,0 +1,2976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cash Book - Product Requirement Document (PRD)</title>
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #00B570;
+      --primary-dark: #006D5B;
+      --primary-light: #10E594;
+      --primary-glow: rgba(0, 181, 112, 0.25);
+      --accent: #3B82F6;
+      --expense: #EF4444;
+      --expense-glow: rgba(239, 68, 68, 0.25);
+      --warning: #F59E0B;
+      
+      /* Dark Theme (Default) */
+      --bg-base: #070D0C;
+      --bg-surface: #0E1816;
+      --bg-surface-elevated: #152422;
+      --bg-card: rgba(18, 32, 29, 0.85);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(0, 181, 112, 0.5);
+      
+      --text-main: #F3F7F6;
+      --text-muted: #94A3A1;
+      --text-dim: #647472;
+      
+      --code-bg: #070E0D;
+      --header-bg: rgba(7, 13, 12, 0.88);
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+      
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+      --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="light"] {
+      --bg-base: #F4F8F7;
+      --bg-surface: #FFFFFF;
+      --bg-surface-elevated: #F9FCFB;
+      --bg-card: #FFFFFF;
+      --border-subtle: #E2EAE8;
+      --border-focus: rgba(0, 109, 91, 0.4);
+      
+      --text-main: #0B2320;
+      --text-muted: #4B6360;
+      --text-dim: #7C9491;
+      
+      --code-bg: #EAF0EE;
+      --header-bg: rgba(244, 248, 247, 0.92);
+      --shadow-card: 0 8px 24px -6px rgba(0, 60, 50, 0.08);
+      --primary-glow: rgba(0, 181, 112, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 14.5px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      background-image: 
+        radial-gradient(circle at 15% 10%, rgba(0, 181, 112, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 60%, rgba(0, 109, 91, 0.07) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* Top Sticky Header */
+    header.sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--header-bg);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.85rem 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .version-tag {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border: 1px solid rgba(0, 181, 112, 0.3);
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    /* Progress Bar Header */
+    .progress-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 6px 14px;
+      border-radius: 30px;
+      min-width: 280px;
+    }
+
+    .progress-bar-outer {
+      flex: 1;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    [data-theme="light"] .progress-bar-outer {
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    .progress-bar-inner {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+      border-radius: 10px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .progress-text {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--primary);
+      white-space: nowrap;
+    }
+
+    /* Action Buttons in Header */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.48rem 0.95rem;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: var(--transition);
+      user-select: none;
+      text-decoration: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+      color: #FFFFFF;
+      border-color: rgba(0, 181, 112, 0.4);
+      box-shadow: 0 2px 10px var(--primary-glow);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px var(--primary-glow);
+      filter: brightness(1.08);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-focus);
+      color: var(--primary);
+    }
+
+    .btn-icon {
+      padding: 0.48rem 0.6rem;
+    }
+
+    /* Layout Wrapper */
+    .layout-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .layout-container {
+        grid-template-columns: 1fr;
+      }
+      aside.sidebar {
+        display: none;
+      }
+    }
+
+    /* Sidebar / Navigation */
+    aside.sidebar {
+      position: sticky;
+      top: 5rem;
+      max-height: calc(100vh - 6rem);
+      overflow-y: auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.25rem 1rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    aside.sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    aside.sidebar::-webkit-scrollbar-thumb {
+      background: var(--border-subtle);
+      border-radius: 4px;
+    }
+
+    .sidebar-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 1rem 0 0.4rem 0.5rem;
+    }
+
+    .sidebar-section-title:first-child {
+      margin-top: 0;
+    }
+
+    .sidebar-nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sidebar-nav-item a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 0.75rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.83rem;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .sidebar-nav-item a:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      transform: translateX(3px);
+    }
+
+    .sidebar-nav-item a.active {
+      background: var(--primary-glow);
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .count-chip {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 1px 6px;
+      border-radius: 12px;
+      color: var(--text-dim);
+    }
+
+    /* Filter & Controls Toolbar */
+    .controls-toolbar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      box-shadow: var(--shadow-card);
+    }
+
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      padding: 0.4rem 0.85rem;
+      border-radius: var(--radius-sm);
+      flex: 1;
+      min-width: 220px;
+      max-width: 380px;
+    }
+
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      width: 100%;
+    }
+
+    .filter-tabs {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--bg-base);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .filter-tab {
+      padding: 0.32rem 0.75rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border-radius: 4px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+
+    .filter-tab.active {
+      background: var(--primary-dark);
+      color: #FFFFFF;
+    }
+
+    /* Main Content Styling */
+    main.content-area {
+      min-width: 0;
+    }
+
+    /* Hero Banner */
+    .hero-banner {
+      background: linear-gradient(135deg, rgba(0, 109, 91, 0.4) 0%, rgba(14, 24, 22, 0.8) 100%);
+      border: 1px solid var(--border-focus);
+      border-radius: var(--radius-xl);
+      padding: 2.25rem 2rem;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 15px 35px -10px rgba(0, 109, 91, 0.3);
+    }
+
+    .hero-banner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 350px;
+      height: 350px;
+      background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(0, 181, 112, 0.2);
+      color: var(--primary-light);
+      border: 1px solid rgba(0, 181, 112, 0.4);
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 0.85rem;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.6rem;
+      line-height: 1.2;
+    }
+
+    .hero-desc {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      max-width: 760px;
+      margin-bottom: 1.4rem;
+      line-height: 1.55;
+    }
+
+    .hero-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.85rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 1.15rem;
+    }
+
+    .hero-meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hero-meta-label {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-meta-value {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-main);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      margin-bottom: 1.75rem;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease;
+      position: relative;
+    }
+
+    .section-card:hover {
+      border-color: rgba(0, 181, 112, 0.3);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 0.85rem;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .section-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--primary-glow);
+      color: var(--primary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 1.28rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Checkbox Items & Lists */
+    .checklist-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      margin: 1rem 0;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      transition: var(--transition);
+      cursor: pointer;
+      position: relative;
+    }
+
+    .check-item:hover {
+      background: var(--bg-surface-elevated);
+      border-color: var(--border-focus);
+    }
+
+    .check-item.completed {
+      background: rgba(0, 181, 112, 0.04);
+      border-color: rgba(0, 181, 112, 0.25);
+    }
+
+    .check-item.completed .item-title {
+      text-decoration: line-through;
+      color: var(--text-muted);
+    }
+
+    .check-item.completed .check-box-custom {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #070D0C;
+    }
+
+    .check-item.completed .check-box-custom::after {
+      content: '✓';
+      font-size: 0.85rem;
+      font-weight: 900;
+    }
+
+    .check-box-custom {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--text-dim);
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      transition: var(--transition);
+      background: var(--bg-base);
+    }
+
+    .check-item:hover .check-box-custom {
+      border-color: var(--primary);
+    }
+
+    .item-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .item-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .item-tags {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .tag {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .tag-p0 {
+      background: rgba(239, 68, 68, 0.15);
+      color: #F87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .tag-p1 {
+      background: rgba(245, 158, 11, 0.15);
+      color: #FBBF24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .tag-p2 {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60A5FA;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .tag-status-done {
+      background: rgba(0, 181, 112, 0.15);
+      color: var(--primary-light);
+      border: 1px solid rgba(0, 181, 112, 0.3);
+    }
+
+    .item-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .item-spec-list {
+      margin-top: 0.45rem;
+      padding-left: 1.2rem;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+
+    .item-spec-list li {
+      margin-bottom: 2px;
+    }
+
+    /* Grids & Cards inside Sections */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .mini-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+    }
+
+    .mini-card-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 0.4rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .mini-card-body {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Tables */
+    .table-container {
+      overflow-x: auto;
+      margin: 1.25rem 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.83rem;
+      text-align: left;
+    }
+
+    th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      padding: 0.75rem 1rem;
+      font-weight: 600;
+      font-family: var(--font-display);
+      border-bottom: 1px solid var(--border-subtle);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(0, 181, 112, 0.02);
+      color: var(--text-main);
+    }
+
+    code {
+      font-family: var(--font-mono);
+      background: var(--code-bg);
+      color: var(--primary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.8em;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border-subtle);
+      padding: 1rem;
+      border-radius: var(--radius-md);
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-main);
+      margin: 1rem 0;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 9999;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .toast {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--primary);
+      color: #FFFFFF;
+      padding: 0.8rem 1.4rem;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* Print styles */
+    @media print {
+      header.sticky-header, aside.sidebar, .controls-toolbar, .section-actions, .toast-container {
+        display: none !important;
+      }
+      .layout-container {
+        display: block !important;
+        padding: 0 !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .section-card {
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky Top Header -->
+  <header class="sticky-header">
+    <div class="brand-block">
+      <div class="logo-badge">CB</div>
+      <div>
+        <div class="brand-title">
+          Cash Book PRD
+          <span class="version-tag">v1.1.0+21</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Progress Indicator -->
+    <div class="progress-wrapper">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-dim);">Checklist:</span>
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="globalProgressBar"></div>
+      </div>
+      <div class="progress-text" id="globalProgressText">0 / 0 (0%)</div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button class="btn btn-primary" id="btnCopyAll" title="Copy PRD in Markdown Format">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        Copy Full PRD (Markdown)
+      </button>
+
+      <button class="btn btn-secondary" id="btnCopyChecklist" title="Copy Checklist State">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="m9 14 2 2 4-4"></path></svg>
+        Copy Checklist
+      </button>
+
+      <button class="btn btn-secondary btn-icon" id="btnResetChecklist" title="Reset all checkboxes to default">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+      </button>
+
+      <button class="btn btn-secondary btn-icon" id="btnThemeToggle" title="Toggle Light / Dark Mode">
+        <svg id="themeIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Layout Container -->
+  <div class="layout-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-section-title">Navigation</div>
+      <ul class="sidebar-nav-list">
+        <li class="sidebar-nav-item"><a href="#overview">Overview & Vision <span class="count-chip">Summary</span></a></li>
+        <li class="sidebar-nav-item"><a href="#personas">User Personas & Needs <span class="count-chip">3 Personas</span></a></li>
+        <li class="sidebar-nav-item"><a href="#tech-stack">Tech Architecture <span class="count-chip">Stack</span></a></li>
+        <li class="sidebar-nav-item"><a href="#data-models">Data Schema & Storage <span class="count-chip">Hive</span></a></li>
+      </ul>
+
+      <div class="sidebar-section-title">Product Modules & Checklist</div>
+      <ul class="sidebar-nav-list">
+        <li class="sidebar-nav-item"><a href="#module-books">1. Multi-Book Ledger <span class="count-chip" id="chip-books">0/4</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-transactions">2. Income & Expense <span class="count-chip" id="chip-transactions">0/6</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-followups">3. Debt & Follow-ups <span class="count-chip" id="chip-followups">0/6</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-goals">4. Financial Goals <span class="count-chip" id="chip-goals">0/4</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-analysis">5. Analytics & Charts <span class="count-chip" id="chip-analysis">0/5</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-reports">6. PDF/CSV Exports <span class="count-chip" id="chip-reports">0/4</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-security">7. Security & App Lock <span class="count-chip" id="chip-security">0/4</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-backup">8. Google Drive Backup <span class="count-chip" id="chip-backup">0/5</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-notifications">9. Notification Engine <span class="count-chip" id="chip-notifications">0/4</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-ads">10. Ads & Monetization <span class="count-chip" id="chip-ads">0/9</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-testing-gate">11. Testing Gate & Testers <span class="count-chip" id="chip-testing-gate">0/3</span></a></li>
+        <li class="sidebar-nav-item"><a href="#module-ui-ux">12. Material 3 & More Apps <span class="count-chip" id="chip-ui-ux">0/6</span></a></li>
+      </ul>
+
+      <div class="sidebar-section-title">Delivery & Release</div>
+      <ul class="sidebar-nav-list">
+        <li class="sidebar-nav-item"><a href="#non-functional">Non-Functional Specs</a></li>
+        <li class="sidebar-nav-item"><a href="#milestones">Release Milestones</a></li>
+      </ul>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="content-area">
+      
+      <!-- Hero Banner -->
+      <section class="hero-banner" id="overview">
+        <div class="hero-tag">PRODUCT REQUIREMENT DOCUMENT • FLUTTER 3.8+</div>
+        <h1 class="hero-title">Cash Book: Smart Daily Khata & Financial Ledger</h1>
+        <p class="hero-desc">
+          An offline-first, lightning-fast personal and small business bookkeeping application built with Flutter. 
+          Empowers shopkeepers, freelancers, and individuals to manage cash flows, track customer debts (udhaar) with instant WhatsApp reminders, 
+          set monthly savings targets, and securely sync encrypted backups to Google Drive.
+        </p>
+
+        <div class="hero-meta-grid">
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Current Version</span>
+            <span class="hero-meta-value">1.1.0 (Build 21)</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Architecture</span>
+            <span class="hero-meta-value">Offline-First Hive + Riverpod</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Primary Target</span>
+            <span class="hero-meta-value">Android (Google Play Ready)</span>
+          </div>
+          <div class="hero-meta-item">
+            <span class="hero-meta-label">Design Language</span>
+            <span class="hero-meta-value">Material 3 / Teal Green</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controls Toolbar (Search & Filter) -->
+      <div class="controls-toolbar">
+        <div class="search-box">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-dim);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="searchInput" placeholder="Search requirements, modules, or tags...">
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All Items</button>
+          <button class="filter-tab" data-filter="pending">Pending</button>
+          <button class="filter-tab" data-filter="completed">Completed</button>
+          <button class="filter-tab" data-filter="p0">P0 Must-Have</button>
+        </div>
+      </div>
+
+      <!-- Section: Executive Summary & Problem -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🎯</div>
+            <h2 class="section-title">1. Executive Summary & Problem Statement</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="summary">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <div class="mini-card-title">⚠️ The Core Problem</div>
+            <div class="mini-card-body">
+              Millions of retail store owners, street vendors, and individuals still rely on fragile paper notebooks (Khata/Bahi-Khata) or clunky spreadsheets. 
+              They suffer from uncollected debt, forgotten payables, lack of real-time balance calculations, accidental data loss, and privacy breaches when leaving physical registers unattended.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">💡 The Cash Book Solution</div>
+            <div class="mini-card-body">
+              A 100% offline-ready, high-performance ledger application with zero subscription barriers. It integrates instant debt follow-ups via WhatsApp/SMS, 
+              biometric pattern privacy, multi-book isolation (Home vs. Shop), and AES-256 encrypted Google Drive cloud backups.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Personas -->
+      <section class="section-card" id="personas">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">👥</div>
+            <h2 class="section-title">2. Target Audience & User Personas</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="personas">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="mini-card">
+            <div class="mini-card-title">🏪 Local Retailer (Tariq)</div>
+            <div class="mini-card-body">
+              <strong>Need:</strong> Records daily customer udhaar (receivables) and supplier dues. Needs to send friendly WhatsApp payment reminders directly without searching contacts.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">💼 Freelancer / Consultant (Sara)</div>
+            <div class="mini-card-body">
+              <strong>Need:</strong> Separates project income from personal household expenses using separate Books, generates monthly PDF statements for tax and invoice reconciliation.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">👨‍👩‍👧 Family Budget Tracker (Ali)</div>
+            <div class="mini-card-body">
+              <strong>Need:</strong> Sets monthly grocery & utility expense limits, locks app with fingerprint so kids don't see finances, backs up data safely to personal Google Drive.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Tech Stack Architecture -->
+      <section class="section-card" id="tech-stack">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">⚡</div>
+            <h2 class="section-title">3. System Architecture & Tech Stack</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="techstack">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Technology / Package</th>
+                <th>Role & Implementation Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Framework</strong></td>
+                <td><code>Flutter 3.29+ / Dart 3.8+</code></td>
+                <td>Cross-platform engine configured with Material 3 design and transparent status bars.</td>
+              </tr>
+              <tr>
+                <td><strong>State Management</strong></td>
+                <td><code>Provider 6.1.5 + Flutter Riverpod 2.6.1</code></td>
+                <td>Provider for core legacy state (Transactions, Settings, Goals); Riverpod for feature modules (AppConfig, TestingGate).</td>
+              </tr>
+              <tr>
+                <td><strong>Local Storage</strong></td>
+                <td><code>Hive 2.2.3 + hive_flutter 1.1.0</code></td>
+                <td>Sub-millisecond NoSQL binary key-value box database. Type adapters for Transaction, Goals, and FollowUps.</td>
+              </tr>
+              <tr>
+                <td><strong>Data Security</strong></td>
+                <td><code>encrypt 5.0.3 (AES-256) + local_auth 3.0.2</code></td>
+                <td>Client-side encryption before Google Drive upload; biometric & custom canvas pattern lock in memory.</td>
+              </tr>
+              <tr>
+                <td><strong>Cloud Services</strong></td>
+                <td><code>Firebase Core, Cloud Firestore, FCM</code></td>
+                <td>Closed-testing access gate verification, tester registration, and remote push notifications.</td>
+              </tr>
+              <tr>
+                <td><strong>Cloud Backup</strong></td>
+                <td><code>google_sign_in 6.3.0 + googleapis 17.0.0</code></td>
+                <td>Direct secure backup and restore into the user's private Google Drive AppData folder.</td>
+              </tr>
+              <tr>
+                <td><strong>Data Visualization</strong></td>
+                <td><code>fl_chart 1.2.0</code></td>
+                <td>Hardware-accelerated touch charts for cashflow curves, income vs expense bar charts, and category breakdowns.</td>
+              </tr>
+              <tr>
+                <td><strong>Ad Monetization</strong></td>
+                <td><code>google_mobile_ads 9.1.0 + Meta Mediation 1.7.0</code></td>
+                <td>Adaptive banner ads and preloaded interstitial ads with frequency capping.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Section: Data Models Schema -->
+      <section class="section-card" id="data-models">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🗄️</div>
+            <h2 class="section-title">4. Hive Data Schemas & Box Entities</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="datamodels">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="mini-card">
+            <div class="mini-card-title">📦 Transaction Entity (TypeId: 1)</div>
+            <div class="mini-card-body">
+              <code>id: String (UUID)</code><br>
+              <code>title: String</code><br>
+              <code>amount: double</code><br>
+              <code>date: DateTime</code><br>
+              <code>type: TransactionType (income/expense)</code><br>
+              <code>paymentMethod: PaymentMethod</code><br>
+              <code>category: String (Bills, Fuel, Food...)</code><br>
+              <code>customPaymentMethod: String?</code><br>
+              <code>updatedAt: int? (epoch ms)</code>
+            </div>
+          </div>
+
+          <div class="mini-card">
+            <div class="mini-card-title">🤝 FollowUp Entity (TypeId: 5)</div>
+            <div class="mini-card-body">
+              <code>id: String (UUID)</code><br>
+              <code>title: String</code><br>
+              <code>contactName: String</code><br>
+              <code>phoneNumber: String?</code><br>
+              <code>amount: double</code><br>
+              <code>dueDate: DateTime</code><br>
+              <code>type: FollowUpType (toReceive / toPay)</code><br>
+              <code>isCompleted: bool</code><br>
+              <code>linkedTransactionId: String?</code>
+            </div>
+          </div>
+
+          <div class="mini-card">
+            <div class="mini-card-title">🎯 FinancialGoals Entity (TypeId: 3)</div>
+            <div class="mini-card-body">
+              <code>monthlyIncomeTarget: double</code><br>
+              <code>monthlyExpenseLimit: double</code><br>
+              <code>savingsTarget: double</code><br>
+              <code>lastUpdated: DateTime</code><br>
+              <em style="font-size:0.75rem; color: var(--text-dim);">Provides automatic alerts when expense limit exceeds threshold.</em>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 1: Multi-Book Ledger -->
+      <section class="section-card" id="module-books" data-module="books">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">📚</div>
+            <h2 class="section-title">5.1 Multi-Book Management (Multiple Ledgers)</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-books">Copy Section</button>
+          </div>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom: 0.75rem;">
+          Allows users to maintain distinct accounting books (e.g. "Personal", "Mart Store", "Rental Flat") with independent transaction databases.
+        </p>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="book-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Multi-Book Isolation in Hive Storage</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Prefix transaction boxes with book ID (<code>transactions_{bookId}</code>) so records never collide.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="book-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Manage Books Screen (Add / Edit / Delete)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Dedicated UI to create books with custom names, rename existing books, and delete unused books with confirmation safeguards.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="book-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Quick Book Switcher in AppBar</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Header dropdown allowing instant switching between active books with seamless screen state refresh.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="book-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Default Fallback Book Creation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Auto-provisions a "My Book" default container on fresh installs, preventing blank/null state crashes.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 2: Income & Expense Ledger -->
+      <section class="section-card" id="module-transactions" data-module="transactions">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">💸</div>
+            <h2 class="section-title">5.2 Income & Expense Transaction Ledger</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-transactions">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="tx-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Real-Time Running Balance Card</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Live calculation displaying Net Balance (Green for positive, Red for deficit), Total Cash In, and Total Cash Out.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="tx-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Add / Edit Transaction Modal</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Fast entry form supporting amount, title, date picker (defaults to today), category selector, and payment method chips.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="tx-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Payment Method Classification</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Supports Cash, Online, Card, Bank Transfer, UPI, and Custom Payment text with individual icons.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="tx-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">19+ Default Categories with Extensibility</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Preloaded categories: Bills, Food, Fuel, Salary, Rent, Health, Pharmacy, Transport, Groceries, Shopping, etc.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="tx-5" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Multi-Filter & Search Engine</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Filter transactions by date range (This Month, Last Month, Custom Date Range), Type (In/Out), and live keyword search.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="tx-6" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Swipe-to-Delete with Undo SnackBar</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Dismissible gesture action to remove transactions with haptic feedback and confirmation prompt.</div>
+            </div>
+          </div>
+
+          <!-- Feature Optimization: High-Performance Filter Bottom Sheet (V2) -->
+          <div style="background: rgba(0, 109, 91, 0.07); border: 1px solid rgba(0, 181, 112, 0.35); border-radius: var(--radius-md); padding: 1.25rem; margin: 1.5rem 0 1rem 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h3 style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--primary-light); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <span>🔄</span> Feature Optimization: High-Performance Filter Bottom Sheet (V2)
+              </h3>
+              <span class="tag tag-p0">P0 Performance & UX</span>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1rem;">
+              <strong>Problem Diagnosis:</strong> Profiling revealed that tapping any filter chip inside <code>_showFilterBottomSheet</code> directly invoked <code>_HomeScreenState.setState()</code>, forcing the entire ledger list (500+ transactions), running balance math, and chart aggregates to recompute in the background on every tap, causing frame drops. In addition, large category collections pushed the 'Apply Filters' button off-screen, changes mutated state without confirmation, and users lacked match visibility.
+            </p>
+
+            <!-- Before vs After Comparison Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+              <!-- BEFORE Column -->
+              <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: #EF4444; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.6rem;">
+                  <span>❌</span> BEFORE (v1 Bottlenecks & Friction)
+                </div>
+                <ul style="padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
+                  <li style="margin-bottom: 0.5rem;"><strong>Background Recompute Lag:</strong> Every chip tap called parent <code>setState()</code>, recalculating hundreds of transactions and re-rendering the home screen while the modal was open.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Uncommitted State Mutation:</strong> Filters updated immediately on tap. Dismissing or swiping away the sheet retained unintended filter selections.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Lost Off-Screen Apply Button:</strong> 'Apply Filters' sat at the bottom of an unconstrained scroll view, pushed off-screen by 20+ category chips.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Blind Filtering:</strong> Users had zero feedback on whether their filter combination matched any transactions until after closing the sheet.</li>
+                  <li><strong>Plain Text Chips:</strong> Payment methods and transaction types lacked icons and modern segmented styling.</li>
+                </ul>
+              </div>
+
+              <!-- AFTER Column -->
+              <div style="background: rgba(0, 181, 112, 0.08); border: 1px solid rgba(0, 181, 112, 0.35); border-radius: var(--radius-sm); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: #10B981; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.6rem;">
+                  <span>✨</span> AFTER (v2 Optimized Architecture)
+                </div>
+                <ul style="padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
+                  <li style="margin-bottom: 0.5rem;"><strong>Zero-Lag Local Draft State:</strong> All selections mutate local draft variables (<code>tempPeriod</code>, <code>tempCategories</code>, <code>tempPayments</code>, <code>tempType</code>). Parent screen only updates upon clicking 'Apply'.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Safe Dismissal:</strong> Swiping down or tapping cancel cleanly discards draft changes without affecting active filters.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Sticky Footer Action Bar:</strong> Pinned bottom bar with <code>[Clear All]</code> on the left and primary <code>[Apply Filters]</code> on the right, always accessible.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Live Match Counter:</strong> Apply button dynamically calculates and displays live matching results in real-time (e.g. <code>Apply Filters (18 matches)</code>).</li>
+                  <li><strong>Modern M3 Styling:</strong> 3-way segmented type toggle (<code>All</code>, <code>🟢 Income</code>, <code>🔴 Expense</code>) and iconized payment chips (Cash 💵, Card 💳, Bank 🏦, UPI 📱).</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Implementation Roadmap for Filter V2 -->
+          <div class="check-item completed" data-id="tx-7" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Zero-Lag Local Draft State Filter Architecture</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Decouple filter bottom sheet state from <code>_HomeScreenState</code> so chips mutate local draft variables with zero background recalculations until confirmed.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="tx-8" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Sticky Bottom Bar with Live Match Counter Preview</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Pin a fixed bottom footer with 'Clear All' and 'Apply Filters (X matches)', ensuring actions are always reachable regardless of list height.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="tx-9" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Material 3 Segmented Type Toggle & Iconized Payment Chips</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Implement 3-way Income/Expense/All segmented selector and payment method chips with financial glyph icons.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 3: Follow-ups & Debt/Udhaar -->
+      <section class="section-card" id="module-followups" data-module="followups">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🤝</div>
+            <h2 class="section-title">5.3 Follow-ups & Debt (Udhaar) Reminders</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-followups">Copy Section</button>
+          </div>
+        </div>
+        <p style="color:var(--text-muted); font-size:0.88rem; margin-bottom: 0.75rem;">
+          Specialized module for tracking informal lending & borrowing (Paisa lena hai / Paisa dena hai) with automated communication tools.
+        </p>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="fu-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Two-Way Debt Type Separation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Explicit categorization into <code>toReceive</code> (Customer Recovery) and <code>toPay</code> (Vendor/Supplier dues).</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="fu-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Instant WhatsApp & Phone Launcher</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Pre-formatted polite payment reminder message launched directly in WhatsApp (via <code>url_launcher</code>) and one-tap direct call dialing.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="fu-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Home Screen Urgent Follow-Up Banner</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Highlights overdue receivables and today's upcoming payments at the top of the main dashboard with pulsing urgency badges.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="fu-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Mark as Settled with Auto-Transaction Creation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">When debt is settled, prompts user to automatically log a corresponding Income or Expense transaction to maintain cash accuracy.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="fu-5" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Book-Scoped Follow-Up Isolation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Each follow-up is tagged with <code>bookId</code>, ensuring shop customer debts don't mix into personal debt lists.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="fu-6" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Follow-Up Interstitial Ad Manager</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Non-intrusive full-screen ad preloaded and displayed upon saving follow-up reminders (subject to frequency caps).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 4: Financial Goals -->
+      <section class="section-card" id="module-goals" data-module="goals">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🎯</div>
+            <h2 class="section-title">5.4 Financial Goals & Budgeting</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-goals">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="goal-1" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Triple Target Metrics Configuration</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">User specifies: 1) Monthly Income Target, 2) Monthly Expense Cap, 3) Monthly Net Savings Goal.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="goal-2" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Visual Progress Rings & Percentage Trackers</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Interactive circular progress indicators showing real-time budget utilization vs. remaining balance.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="goal-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Over-Budget Warning Trigger</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">UI switches to amber/red alert states once current monthly expenses breach 85% and 100% of the defined cap.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="goal-4" data-priority="p2">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Goal History & Monthly Rollover</span>
+                <div class="item-tags">
+                  <span class="tag tag-p2">P2</span>
+                  <span class="tag tag-p2">Roadmap</span>
+                </div>
+              </div>
+              <div class="item-desc">Store historical monthly goal achievement records to calculate 6-month budget adherence trends.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 5: Analytics & Visual Reports -->
+      <section class="section-card" id="module-analysis" data-module="analysis">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">📊</div>
+            <h2 class="section-title">5.5 Analytics & Visual Charts (fl_chart)</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-analysis">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="chart-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Cash Flow Trend Curve (LineChart)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Smooth bezier curve showing daily cumulative balance trajectory throughout the selected period.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="chart-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Monthly Income vs. Expense Comparison (BarChart)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Grouped dual bar chart comparing Total Income (Emerald) against Total Expenses (Red) over 6 months.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="chart-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Category Spending Distribution (Pie/Donut Chart)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Segmented donut chart displaying percentage share of each category (e.g., 40% Food, 25% Rent) with interactive tooltips.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="chart-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Date Period Presets (Week, Month, Year, Custom)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">One-tap segmented control buttons to toggle graph calculations across different time horizons.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="chart-5" data-priority="p2">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">AI Financial Insights & Spending Anomaly Detection</span>
+                <div class="item-tags">
+                  <span class="tag tag-p2">P2</span>
+                  <span class="tag tag-p2">Roadmap</span>
+                </div>
+              </div>
+              <div class="item-desc">Automated tips highlighting spike in expenses (e.g. "Fuel spending increased by 35% compared to last week").</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 6: Reports & Export -->
+      <section class="section-card" id="module-reports" data-module="reports">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">📑</div>
+            <h2 class="section-title">5.6 PDF & CSV Statement Generation</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-reports">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="rep-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Branded PDF Account Statement</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Generates professional formatted PDF documents featuring book title, date range, summary cards, and itemized transaction tables.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="rep-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">CSV Spreadsheet Export</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Creates clean RFC 4180 compliant CSV files importable into Microsoft Excel, Google Sheets, or QuickBooks.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="rep-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Native Share Sheet Integration (share_plus)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Direct file sharing via WhatsApp chats, Gmail attachments, Bluetooth, or local file manager saves.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="rep-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Report Export Bottom Sheet Modal</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Interactive modal allows users to select date boundaries and report format (PDF vs. CSV) before generating.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 7: Security & App Lock -->
+      <section class="section-card" id="module-security" data-module="security">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🔒</div>
+            <h2 class="section-title">5.7 Security, Biometrics & Pattern Lock</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-security">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="sec-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Biometric Authentication (Fingerprint / FaceID)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Hardware-backed biometric prompt using Flutter <code>local_auth</code> with fallback to custom pattern/PIN.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="sec-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Custom 9-Dot Canvas Pattern Lock</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Fluid custom painter canvas (<code>pattern_lock_canvas.dart</code>) allowing users to draw and verify 4-to-9 node unlock patterns.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="sec-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">App Lifecycle Auto-Lock Wrapper</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Intercepts app lifecycle events; immediately displays security screen when app is minimized or resumed from background.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="sec-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Privacy Veil in Recent Apps Task Switcher</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Obscure financial ledger previews in the Android/iOS task switcher thumbnail to prevent shoulder surfing. Dual-layer defense: Flutter-level PrivacyVeil overlay and native Android WindowManager.FLAG_SECURE.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 8: Google Drive Cloud Backup -->
+      <section class="section-card" id="module-backup" data-module="backup">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">☁️</div>
+            <h2 class="section-title">5.8 Encrypted Google Drive Backup & Sync</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-backup">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="bak-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">OAuth 2.0 Silent & Interactive Google Sign-In</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Secure authorization requesting only <code>drive.appdata</code> scope, keeping backup files private and hidden from general Google Drive lists.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="bak-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">AES-256 Client-Side Backup Encryption</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Full payload encryption using the <code>encrypt</code> library prior to network transmission, ensuring total zero-knowledge data privacy.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="bak-3" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">One-Tap Restore with Database Hot Reload</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Downloads latest backup from Google Drive, decrypts payload, verifies checksum, and restores all books & follow-ups smoothly.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="bak-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Backup Metadata & Timestamp Verification</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Displays "Last Backed Up: DD/MM/YYYY hh:mm" and backup file size on settings screen for user reassurance.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="bak-5" data-priority="p2">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Automated Scheduled Daily/Weekly Cloud Backup</span>
+                <div class="item-tags">
+                  <span class="tag tag-p2">P2</span>
+                  <span class="tag tag-p2">Roadmap</span>
+                </div>
+              </div>
+              <div class="item-desc">Background worker trigger to auto-upload encrypted delta backup over Wi-Fi once per day.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 9: Notification Engine -->
+      <section class="section-card" id="module-notifications" data-module="notifications">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🔔</div>
+            <h2 class="section-title">5.9 Notification Engine (Local + FCM)</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-notifications">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="notif-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Scheduled Local Follow-Up Alerts</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Uses <code>flutter_local_notifications</code> with timezone support to trigger reminders at 9:00 AM on the follow-up due date.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="notif-2" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Daily Evening Bookkeeping Reminder</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Configurable evening prompt ("Did you forget to log today's expenses?") to foster habitual daily entry.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="notif-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Firebase Cloud Messaging (FCM) Integration</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Remote push channel for major app feature updates, security bulletins, and educational tips.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="notif-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Android 13+ Notification Permission Flow</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Explicit runtime permission modal requested contextually when setting a follow-up or enabling notifications.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 10: Monetization & Ads -->
+      <section class="section-card" id="module-ads" data-module="ads">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">💰</div>
+            <h2 class="section-title">5.10 Monetization & Ad Network Mediation</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-ads">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="ad-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Centralized Ad Unit Configuration (AdConfig)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Single-toggle architecture for test vs production AdMob Unit IDs (Banner, Report Interstitial, Follow-Up Interstitial).</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ad-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Sticky Bottom Adaptive Banner Ad</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Smooth responsive banner widget loaded cleanly above system navigation bar without layout jumps.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ad-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Meta Audience Network (Facebook) Mediation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Integrated <code>gma_mediation_meta</code> adapter for real-time eCPM bidding competition maximizing ad revenue.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ad-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Preloaded Interstitial Ad Caching & Frequency Caps</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Preloads ads during splash screen initialization to ensure zero lag upon triggers (e.g. exporting reports).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Critical Production Incident & Root Cause Analysis -->
+        <div style="margin-top: 1.75rem; border-top: 1px dashed var(--border-subtle); padding-top: 1.5rem;">
+          <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">⚠️</span>
+                <span style="font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; color: #F87171;">
+                  CRITICAL DEFECT REPORT: Follow-Up Interstitial Ad Show-Rate Drop (0.43%)
+                </span>
+              </div>
+              <span class="tag tag-p0" style="font-size: 0.75rem; padding: 2px 10px;">High Revenue Impact</span>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1rem;">
+              Production metrics for ad unit <code>C_F_ups_Interstitial</code> (<code>ca-app-pub-7531348818625320/2870273086</code>) reveal an acute discrepancy between 
+              matched ad requests (466) and successfully rendered impressions (<strong>only 2</strong>), yielding a catastrophic <strong>0.43% Show Rate</strong>. 
+              Despite an extraordinary <strong>eCPM of $41.60</strong>, total revenue is restricted to $0.08 due to 464 unrendered and expired ads.
+            </p>
+
+            <div class="table-container" style="margin: 0.75rem 0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ad Unit</th>
+                    <th>Requests</th>
+                    <th>Matched (Fill)</th>
+                    <th>Impressions</th>
+                    <th>Show Rate</th>
+                    <th>Observed eCPM</th>
+                    <th>Diagnosis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="background: rgba(239, 68, 68, 0.05);">
+                    <td><strong>C_F_ups_Interstitial</strong></td>
+                    <td>466</td>
+                    <td>466 (100%)</td>
+                    <td style="color: #F87171; font-weight: 700;">2</td>
+                    <td style="color: #F87171; font-weight: 700;">0.43%</td>
+                    <td>$41.60</td>
+                    <td><span class="tag tag-p0">Severe Lag / Premature Pop</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>C_E_R_Interstitial</strong> (Reports)</td>
+                    <td>488</td>
+                    <td>488 (100%)</td>
+                    <td style="color: var(--primary); font-weight: 700;">18</td>
+                    <td>3.69%</td>
+                    <td>$3.81</td>
+                    <td><span class="tag tag-p1">Preloaded on Screen Entry</span></td>
+                  </tr>
+                  <tr>
+                    <td><strong>CashBook_Banner_Android</strong></td>
+                    <td>2,056</td>
+                    <td>1,014 (49.3%)</td>
+                    <td style="color: var(--primary); font-weight: 700;">800</td>
+                    <td>78.90%</td>
+                    <td>$0.21</td>
+                    <td><span class="tag tag-status-done">Healthy Inline Baseline</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Root Causes Grid -->
+          <h3 style="font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; margin-bottom: 0.85rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔍</span> Root Cause Analysis: Where is the Lag & Drop-off Happening?
+          </h3>
+
+          <div class="grid-2" style="margin-bottom: 1.5rem;">
+            <div class="mini-card" style="border-left: 3px solid #EF4444;">
+              <div class="mini-card-title" style="color: #F87171;">1. Premature Global Preload in main.dart</div>
+              <div class="mini-card-body">
+                <code>main.dart:53</code> calls <code>FollowUpInterstitialAdManager.preloadAd()</code> unconditionally on every single app launch. 
+                Users opening the app for balance checks never create a follow-up; AdMob 1-hour expiration TTL kills the loaded ad in background, 
+                artificially inflating requests to 466 with 0 impressions.
+              </div>
+            </div>
+
+            <div class="mini-card" style="border-left: 3px solid #EF4444;">
+              <div class="mini-card-title" style="color: #F87171;">2. Missing Preload on Form Screen Entry</div>
+              <div class="mini-card-body">
+                <code>AddFollowUpScreen.initState()</code> has <strong>zero preload logic</strong>. 
+                Users spend 15 to 45 seconds filling out contact name, amount, and date/time. This valuable form-filling duration is completely wasted 
+                instead of silently caching the ad in background.
+              </div>
+            </div>
+
+            <div class="mini-card" style="border-left: 3px solid #F59E0B;">
+              <div class="mini-card-title" style="color: #FBBF24;">3. Double HTTP 204 Network Ping Latency</div>
+              <div class="mini-card-body">
+                When "Save" is tapped, <code>add_follow_up_screen.dart:149</code> executes <code>ConnectivityHelper.hasInternetConnection()</code> (2-3s). 
+                Immediately after, <code>showAdThen():80</code> executes the exact same HTTP check <strong>a second time</strong>. 
+                Back-to-back TCP/TLS handshakes create 4-6s cumulative lag, triggering false offline fallbacks.
+              </div>
+            </div>
+
+            <div class="mini-card" style="border-left: 3px solid #F59E0B;">
+              <div class="mini-card-title" style="color: #FBBF24;">4. 5-Second Timeout Race Condition</div>
+              <div class="mini-card-body">
+                Because no ad is ready, <code>showAdThen()</code> attempts an on-demand load with a 5-second timeout. 
+                Double internet ping (3s) + AdMob network delivery (3-5s) exceeds the 5s ceiling. 
+                The timeout triggers <code>onComplete()</code>, which executes <code>Navigator.pop()</code> and closes the screen. 
+                The ad finishes loading 2s later into an empty graveyard with no visible context.
+              </div>
+            </div>
+
+            <div class="mini-card" style="border-left: 3px solid #3B82F6; grid-column: 1 / -1;">
+              <div class="mini-card-title" style="color: #60A5FA;">5. Redundant Internet Pre-Flight on Already Cached Ads</div>
+              <div class="mini-card-body">
+                If an ad is already loaded (<code>_interstitialAd != null</code>), its creative and video assets are <strong>already cached locally</strong> on the device. 
+                Testing internet via Google 204 before calling <code>ad.show()</code> is architecturally redundant and actively blocks pre-cached ads from rendering whenever mobile connectivity fluctuates.
+              </div>
+            </div>
+          </div>
+
+          <!-- Proposed Architecture Solution -->
+          <div style="background: rgba(0, 181, 112, 0.06); border: 1px solid rgba(0, 181, 112, 0.3); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.5rem;">
+            <h3 style="font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--primary-light); display: flex; align-items: center; gap: 0.5rem;">
+              <span>💡</span> Architecture Solution & Remediation Strategy (Target: 75%+ Show Rate)
+            </h3>
+            <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+              <li><strong>Contextual Lifecycle Preloading:</strong> Remove preload from <code>main.dart</code>. Call <code>FollowUpInterstitialAdManager.instance.preloadAd()</code> inside <code>AddFollowUpScreen.initState()</code>. The ad will load silently while the user types, guaranteeing 0ms wait on Save.</li>
+              <li><strong>Zero-Latency Instant Render:</strong> In <code>showAdThen()</code>, check <code>if (_interstitialAd != null)</code> immediately at line 1. Render the cached ad directly without any preceding network verification.</li>
+              <li><strong>Single-Point Connectivity Verification:</strong> Rely exclusively on the internet check already performed during form validation in <code>_saveFollowUp()</code>. Do not run duplicate HTTP socket pings in the ad manager.</li>
+              <li><strong>Safety Fallback & Smooth User Feedback:</strong> If a user saves so fast that the ad is still loading, show a brief progress overlay ("Finalizing...") instead of popping the screen and abandoning the ad mid-flight.</li>
+              <li><strong>Automatic Post-Dismissal Refresh:</strong> Preload the next ad in <code>onAdDismissedFullScreenContent</code> so subsequent edits within the same session remain instantaneous.</li>
+            </ul>
+          </div>
+
+          <!-- Actionable Remediation Checklist -->
+          <h3 style="font-family: var(--font-display); font-size: 1.05rem; font-weight: 700; margin-bottom: 0.6rem; color: var(--text-main); display: flex; align-items: center; gap: 0.5rem;">
+            <span>📋</span> Remediation Action Items & Acceptance Checklist
+          </h3>
+
+          <div class="checklist-group">
+            <div class="check-item completed" data-id="ad-fix-1" data-priority="p0">
+              <div class="check-box-custom"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <span class="item-title">De-couple Follow-Up Preload from main.dart App Startup</span>
+                  <div class="item-tags">
+                    <span class="tag tag-p0">P0</span>
+                    <span class="tag tag-status-done">Resolved</span>
+                  </div>
+                </div>
+                <div class="item-desc">Stop firing wasteful ad requests on general app launch where user never accesses follow-up features. Prevents AdMob 60-min TTL expirations.</div>
+              </div>
+            </div>
+
+            <div class="check-item completed" data-id="ad-fix-2" data-priority="p0">
+              <div class="check-box-custom"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <span class="item-title">Implement Contextual Preload in AddFollowUpScreen.initState()</span>
+                  <div class="item-tags">
+                    <span class="tag tag-p0">P0</span>
+                    <span class="tag tag-status-done">Resolved</span>
+                  </div>
+                </div>
+                <div class="item-desc">Initiate background ad caching the instant user enters Add/Edit screen, utilizing the 15-30s form entry window to prepare the ad for instant display.</div>
+              </div>
+            </div>
+
+            <div class="check-item completed" data-id="ad-fix-3" data-priority="p0">
+              <div class="check-box-custom"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <span class="item-title">Eliminate Redundant Connectivity Ping in showAdThen()</span>
+                  <div class="item-tags">
+                    <span class="tag tag-p0">P0</span>
+                    <span class="tag tag-status-done">Resolved</span>
+                  </div>
+                </div>
+                <div class="item-desc">Remove secondary <code>ConnectivityHelper.hasInternetConnection()</code> HTTP call inside <code>showAdThen()</code>, eliminating 2-3 seconds of artificial latency.</div>
+              </div>
+            </div>
+
+            <div class="check-item completed" data-id="ad-fix-4" data-priority="p0">
+              <div class="check-box-custom"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <span class="item-title">Instant Rendering for Locally Cached _interstitialAd</span>
+                  <div class="item-tags">
+                    <span class="tag tag-p0">P0</span>
+                    <span class="tag tag-status-done">Resolved</span>
+                  </div>
+                </div>
+                <div class="item-desc">Immediately call <code>_showLoadedAd(onComplete)</code> if <code>_interstitialAd != null</code> without any preliminary network round-trips.</div>
+              </div>
+            </div>
+
+            <div class="check-item completed" data-id="ad-fix-5" data-priority="p1">
+              <div class="check-box-custom"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <span class="item-title">Prevent Premature Navigator.pop() Screen Abandonment</span>
+                  <div class="item-tags">
+                    <span class="tag tag-p1">P1</span>
+                    <span class="tag tag-status-done">Resolved</span>
+                  </div>
+                </div>
+                <div class="item-desc">Gracefully handle in-flight ad requests with an active saving indicator so the screen does not close 2 seconds before the ad returns.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 11: Testing Gate & Closed Testing Lifecycle -->
+      <section class="section-card" id="module-testing-gate" data-module="testing-gate">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🛡️</div>
+            <h2 class="section-title">5.11 Testing Gate & Closed Testing Lifecycle</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-testing-gate">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="gate-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Google Play 20-Tester Closed Testing Gate</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Verification screen (<code>testing_gate_screen.dart</code>) guarding app entry during Google Play mandatory closed testing phase.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="gate-2" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Firebase Firestore Tester Access Registry</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Stores user name, email, device info, and approval status in Firestore with rate-limiting protection.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="gate-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Dynamic Remote Gate Activation</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Ability to deactivate the gate remotely once the app transitions to open Google Play production release.</div>
+            </div>
+          </div>
+
+          <!-- Feature Upgrade: More Apps & Closed Testing Access Hub (V2) -->
+          <div style="background: rgba(0, 109, 91, 0.07); border: 1px solid rgba(0, 181, 112, 0.35); border-radius: var(--radius-md); padding: 1.25rem; margin: 1.5rem 0 1rem 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h3 style="font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: var(--primary-light); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <span>🔄</span> Feature Upgrade: More Apps & Closed Testing Access Hub (V2 Architecture)
+              </h3>
+              <span class="tag tag-p0">P0 Priority</span>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin-bottom: 1rem;">
+              <strong>Problem Diagnosis:</strong> Users submitted testing requests that were approved in Google Play Console, but active beta testers failed to increase. Investigation revealed two root causes: (1) In Settings, a top-level "Beta Testing Access" banner misled users into believing <em>all</em> apps required an access request; (2) Tapping the approval push notification only executed <code>debugPrint</code> and opened the default home ledger without any download link or Google account guidance.
+            </p>
+
+            <!-- Before vs After Comparison Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+              <!-- BEFORE Column -->
+              <div style="background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: #EF4444; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.6rem;">
+                  <span>❌</span> BEFORE (v1 Architecture & Friction Points)
+                </div>
+                <ul style="padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
+                  <li style="margin-bottom: 0.5rem;"><strong>Misleading Top Banner:</strong> Prominent "Beta Testing Access" banner sat above all apps in Settings, causing users to believe even public Play Store apps were locked and required access requests.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Mixed App Portfolio:</strong> Public and closed testing apps were mixed in one flat list with only a tiny "Beta" pill, confusing casual users.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>No Notification Click Action:</strong> Tapping the approval push notification executed only <code>debugPrint</code> and opened the Cash Book daily ledger. Zero deep linking or download triggers.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>No Google Account Guidance:</strong> Users opened Play Store under a different personal Google account and received "Item not found" errors, abandoning installation.</li>
+                  <li><strong>Ambiguous Access Scope:</strong> Testers were uncertain whether access was per-app or portfolio-wide.</li>
+                </ul>
+              </div>
+
+              <!-- AFTER Column -->
+              <div style="background: rgba(0, 181, 112, 0.08); border: 1px solid rgba(0, 181, 112, 0.35); border-radius: var(--radius-sm); padding: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.4rem; color: #10B981; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.6rem;">
+                  <span>✨</span> AFTER (v2 High-Conversion Testing Architecture)
+                </div>
+                <ul style="padding-left: 1.1rem; font-size: 0.82rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
+                  <li style="margin-bottom: 0.5rem;"><strong>Clean Visual Separation:</strong> Public Play Store apps separated under "Our Apps on Google Play" with direct green <code>[Install on Play Store]</code> button. Zero requests, zero barrier.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Universal 1-Approval Rule:</strong> Adding the user's email once to Play Console automatically grants universal access to <em>all</em> closed testing apps.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Interactive Notification Tap Handler:</strong> Tapping the push notification instantly displays a dedicated <strong>"Beta Testing Hub" Pop-up / Bottom Sheet</strong> directly on top of the app.</li>
+                  <li style="margin-bottom: 0.5rem;"><strong>Prominent Account Guidance Banner:</strong> Highlighted alert inside the popup clearly displays the approved email (<code>user@gmail.com</code>) instructing the user to ensure Google Play Store is switched to this account.</li>
+                  <li><strong>Direct 1-Click Install List:</strong> Modal lists all active testing apps with direct <code>[📥 Install on Play Store]</code> action buttons opening testing opt-in URLs.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Implementation Roadmap for V2 -->
+          <div class="check-item completed" data-id="gate-4" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Public vs. Closed Testing Visual Separation (More Apps)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Split <code>MoreAppsListWidget</code> into direct public apps with 1-tap Play Store installs and a dedicated "Beta & Upcoming Apps" section displaying all active testing apps with dynamic buttons (<code>Install</code> for approved, <code>Get Access</code> for new users).</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="gate-5" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Dedicated Beta Testing Hub Modal Sheet</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Create <code>BetaTestingAppsSheet</code> with approved Google account guidance card (Play Store account switch warning), universal access status, and 1-tap install buttons for all testing apps.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="gate-6" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Push Notification Tap Handler & Deep Trigger</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Wire <code>PushNotificationService.onMessageOpenedApp</code> and <code>getInitialMessage()</code> via global <code>navigatorKey</code> to automatically launch <code>BetaTestingAppsSheet</code> on approval notification taps.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Module 12: UI/UX, Themes & More Apps -->
+      <section class="section-card" id="module-ui-ux" data-module="ui-ux">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🎨</div>
+            <h2 class="section-title">5.12 Material 3 UI, Dark Mode & Utilities</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="module-ui-ux">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="checklist-group">
+          <div class="check-item" data-id="ui-1" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Material 3 Theming with Teal Emerald Seed</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Harmonious color schemes generated via <code>ColorScheme.fromSeed(seedColor: Color(0xFF006D5B))</code>.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ui-2" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Dark / Light / System Mode Toggle</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Stored in Hive preferences with instantaneous theme transition across all dialogs, sheets, and charts.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ui-3" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Reusable UI Kit (GlassCard, Skeleton, EmptyState)</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Custom micro-widgets in <code>lib/widgets/ui_kit/</code> ensuring consistent glassmorphic elevations and animated skeleton loaders.</div>
+            </div>
+          </div>
+
+          <div class="check-item" data-id="ui-4" data-priority="p1">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">In-App Review & Rating Prompt</span>
+                <div class="item-tags">
+                  <span class="tag tag-p1">P1</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Custom rating dialog + Google Play <code>in_app_review</code> dialog triggered after 5 successful transactions.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="ui-5" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Branded App Logo Splash & Startup Screen</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Premium launch screen featuring official app icon (<code>assets/icon.png</code>), breathing pulse animation, 'Cash Book' typography, and tagline to eliminate perceived startup latency.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="ui-6" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Animated Emerald 0%–100% Loading Bar</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Sleek linear loading bar with real service initialization progress (0% to 100%), gradient fill, percentage badge, and dynamic status messages replacing spinners across <code>SplashScreen</code> and <code>TestingGateScreen</code>.</div>
+            </div>
+          </div>
+
+          <div class="check-item completed" data-id="ui-7" data-priority="p0">
+            <div class="check-box-custom"></div>
+            <div class="item-content">
+              <div class="item-header">
+                <span class="item-title">Android Native Cold Start Theme & Cash Book Icon</span>
+                <div class="item-tags">
+                  <span class="tag tag-p0">P0</span>
+                  <span class="tag tag-status-done">Implemented</span>
+                </div>
+              </div>
+              <div class="item-desc">Eliminates cold-start white flash and square border artifacts: Clean White (<code>#FFFFFF</code>) native background perfectly blends with Cash Book wallet icon, transitioning seamlessly into Flutter's <code>AppLoadingView</code> with zero visual flicker.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Non-Functional Requirements -->
+      <section class="section-card" id="non-functional">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">⚙️</div>
+            <h2 class="section-title">6. Non-Functional Requirements (NFRs)</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="nfr">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="mini-card">
+            <div class="mini-card-title">🚀 Performance & Cold Start</div>
+            <div class="mini-card-body">
+              • App cold start under 1.2s on mid-tier Android devices.<br>
+              • Background asynchronous initialization of MobileAds.<br>
+              • 60 FPS smooth scrolling on lists with 10,000+ transactions using Hive indexed pagination.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">🛡️ Security & Zero Data Leakage</div>
+            <div class="mini-card-body">
+              • No transaction data sent to unauthorized third-party telemetry.<br>
+              • AES-256 encrypted backups stored only in user's isolated Google Drive appData folder.<br>
+              • Biometric cryptographic keys managed strictly through device Secure Enclave / Keystore.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">📶 100% Offline Capability</div>
+            <div class="mini-card-body">
+              • All ledger entry, search, editing, charts, and PDF exports function completely without internet access.<br>
+              • Network connectivity requested exclusively for Google Drive backup sync and AdMob loading.
+            </div>
+          </div>
+          <div class="mini-card">
+            <div class="mini-card-title">📱 Device Compatibility</div>
+            <div class="mini-card-body">
+              • Minimum SDK: Android 21 (Lollipop 5.0+).<br>
+              • Target SDK: Android 35 (Android 15+).<br>
+              • Responsive layout adapting to small screens (320px) up to foldables and tablets.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: Milestones & Roadmap -->
+      <section class="section-card" id="milestones">
+        <div class="section-header">
+          <div class="section-title-wrap">
+            <div class="section-icon">🗺️</div>
+            <h2 class="section-title">7. Release Milestones & QA Acceptance Criteria</h2>
+          </div>
+          <div class="section-actions">
+            <button class="btn btn-secondary btn-copy-section" data-section="milestones">Copy Section</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Phase</th>
+                <th>Deliverables</th>
+                <th>Target Timeline</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>v1.0 MVP</strong></td>
+                <td>Single Cash Book, Basic Income/Expense, Balance Cards, Categories, Local Storage.</td>
+                <td>Completed</td>
+                <td><span class="tag tag-status-done">Released</span></td>
+              </tr>
+              <tr>
+                <td><strong>v1.1 (Current)</strong></td>
+                <td>Multi-Book support, Debt Follow-ups with WhatsApp trigger, Pattern/Biometric Lock, AES-256 Drive Backup, PDF/CSV Reports, AdMob Mediation.</td>
+                <td>Current Build 21</td>
+                <td><span class="tag tag-status-done">Production Ready</span></td>
+              </tr>
+              <tr>
+                <td><strong>v1.2 (Next)</strong></td>
+                <td>Automated daily cloud sync, OCR receipt scanning via camera, multi-currency auto conversion, customer balance statements via PDF.</td>
+                <td>Q3 2026</td>
+                <td><span class="tag tag-p1">In Planning</span></td>
+              </tr>
+              <tr>
+                <td><strong>v2.0 (Future)</strong></td>
+                <td>Multi-user shared shop access (Owner/Cashier roles), desktop web dashboard, inventory barcode scanning.</td>
+                <td>Q4 2026</td>
+                <td><span class="tag tag-p2">Backlog</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Embedded PRD Content & Interactive Logic -->
+  <script>
+    // LocalStorage Key for Checkbox Persistence
+    const STORAGE_KEY = 'cashbook_prd_checklist_state_v1';
+    const THEME_KEY = 'cashbook_prd_theme_mode';
+
+    // State object holding checked IDs
+    let checkedState = {};
+
+    // Initialize Checkbox State
+    function initChecklist() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          checkedState = JSON.parse(saved);
+        } else {
+          // Default to checking items marked with 'Implemented' initially
+          document.querySelectorAll('.check-item').forEach(item => {
+            const id = item.dataset.id;
+            const isDone = item.querySelector('.tag-status-done') !== null;
+            if (isDone && id) {
+              checkedState[id] = true;
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load checklist state", e);
+      }
+      applyChecklistState();
+      updateProgress();
+    }
+
+    // Apply State to DOM
+    function applyChecklistState() {
+      document.querySelectorAll('.check-item').forEach(item => {
+        const id = item.dataset.id;
+        if (checkedState[id]) {
+          item.classList.add('completed');
+        } else {
+          item.classList.remove('completed');
+        }
+      });
+    }
+
+    // Save State
+    function saveChecklistState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(checkedState));
+      } catch (e) {
+        console.error("Failed to save checklist state", e);
+      }
+      updateProgress();
+    }
+
+    // Toggle Item Check
+    document.querySelectorAll('.check-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        // Prevent trigger if clicking on external link
+        if (e.target.tagName.toLowerCase() === 'a') return;
+
+        const id = item.dataset.id;
+        checkedState[id] = !checkedState[id];
+        if (checkedState[id]) {
+          item.classList.add('completed');
+        } else {
+          item.classList.remove('completed');
+        }
+        saveChecklistState();
+      });
+    });
+
+    // Update Progress Bars & Counters
+    function updateProgress() {
+      const allItems = document.querySelectorAll('.check-item');
+      const totalCount = allItems.length;
+      let completedCount = 0;
+
+      allItems.forEach(item => {
+        const id = item.dataset.id;
+        if (checkedState[id]) {
+          completedCount++;
+        }
+      });
+
+      const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+      
+      const barInner = document.getElementById('globalProgressBar');
+      const barText = document.getElementById('globalProgressText');
+      if (barInner) barInner.style.width = percentage + '%';
+      if (barText) barText.textContent = `${completedCount} / ${totalCount} (${percentage}%)`;
+
+      // Update sidebar module counts
+      const modules = ['books', 'transactions', 'followups', 'goals', 'analysis', 'reports', 'security', 'backup', 'notifications', 'ads', 'testing-gate', 'ui-ux'];
+      modules.forEach(mod => {
+        const chip = document.getElementById(`chip-${mod}`);
+        const modCard = document.querySelector(`.section-card[data-module="${mod}"]`);
+        if (chip && modCard) {
+          const modItems = modCard.querySelectorAll('.check-item');
+          let modDone = 0;
+          modItems.forEach(mi => {
+            if (checkedState[mi.dataset.id]) modDone++;
+          });
+          chip.textContent = `${modDone}/${modItems.length}`;
+        }
+      });
+    }
+
+    // Reset Checklist
+    document.getElementById('btnResetChecklist').addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset all checkboxes to default?')) {
+        checkedState = {};
+        document.querySelectorAll('.check-item').forEach(item => {
+          const id = item.dataset.id;
+          const isDone = item.querySelector('.tag-status-done') !== null;
+          if (isDone && id) {
+            checkedState[id] = true;
+          }
+        });
+        saveChecklistState();
+        applyChecklistState();
+        showToast('Checklist reset to default state');
+      }
+    });
+
+    // Search and Filter Handling
+    const searchInput = document.getElementById('searchInput');
+    const filterTabs = document.querySelectorAll('.filter-tab');
+    let currentFilter = 'all';
+
+    function filterItems() {
+      const query = (searchInput.value || '').toLowerCase().trim();
+
+      document.querySelectorAll('.check-item').forEach(item => {
+        const id = item.dataset.id;
+        const isCompleted = !!checkedState[id];
+        const priority = item.dataset.priority || '';
+        const text = item.textContent.toLowerCase();
+
+        const matchesQuery = !query || text.includes(query);
+        let matchesFilter = true;
+
+        if (currentFilter === 'pending') {
+          matchesFilter = !isCompleted;
+        } else if (currentFilter === 'completed') {
+          matchesFilter = isCompleted;
+        } else if (currentFilter === 'p0') {
+          matchesFilter = priority === 'p0';
+        }
+
+        if (matchesQuery && matchesFilter) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+
+    searchInput.addEventListener('input', filterItems);
+
+    filterTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        filterTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        filterItems();
+      });
+    });
+
+    // Theme Toggle
+    const themeBtn = document.getElementById('btnThemeToggle');
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem(THEME_KEY, theme);
+    }
+
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark';
+    applyTheme(savedTheme);
+
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      showToast(`Switched to ${next} mode`);
+    });
+
+    // Toast Notification Utility
+    function showToast(message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--primary);"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>${message}</span>
+      `;
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 20);
+
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    // Markdown Exporter for Entire PRD
+    function generateFullMarkdown() {
+      let md = `# Product Requirement Document (PRD): Cash Book\n\n`;
+      md += `**App Name:** Cash Book - Daily Khata & Financial Ledger\n`;
+      md += `**Version:** 1.1.0 (Build 21)\n`;
+      md += `**Platform:** Flutter 3.8+ (Android, iOS, Web)\n`;
+      md += `**Architecture:** Hive NoSQL Offline-First + Riverpod / Provider\n`;
+      md += `**Generated Date:** ${new Date().toLocaleDateString()}\n\n`;
+
+      md += `## 1. Executive Summary\n`;
+      md += `Cash Book is an offline-first financial ledger app designed for small shop owners, freelancers, and individuals. `;
+      md += `It provides seamless income & expense recording, debt (udhaar) recovery with direct WhatsApp reminders, `;
+      md += `monthly financial budgeting, visual charts, and military-grade AES-256 encrypted Google Drive backups.\n\n`;
+
+      md += `## 2. Technical Stack\n`;
+      md += `- **Frontend:** Flutter & Dart (Material 3 Teal Seed Theme)\n`;
+      md += `- **State Management:** Provider 6.1.5 + Riverpod 2.6.1\n`;
+      md += `- **Storage:** Hive 2.2.3 (Sub-millisecond NoSQL boxes)\n`;
+      md += `- **Cloud & Backup:** Google Drive AppData via OAuth2 + AES-256 Encryption\n`;
+      md += `- **Security:** Biometrics (local_auth) & Custom Canvas 9-Dot Pattern Lock\n`;
+      md += `- **Monetization:** Google Mobile Ads (AdMob) + Meta Audience Network Mediation\n`;
+      md += `- **Reporting:** PDF (pdf package) + CSV Export + share_plus\n\n`;
+
+      md += `## 3. Product Modules & Checklist Status\n\n`;
+
+      const sections = document.querySelectorAll('.section-card[data-module]');
+      sections.forEach(sec => {
+        const title = sec.querySelector('.section-title').textContent.trim();
+        md += `### ${title}\n\n`;
+
+        const items = sec.querySelectorAll('.check-item');
+        items.forEach(item => {
+          const id = item.dataset.id;
+          const checked = checkedState[id] ? '[x]' : '[ ]';
+          const itemTitle = item.querySelector('.item-title').textContent.trim();
+          const itemDesc = item.querySelector('.item-desc').textContent.trim();
+          const priority = (item.dataset.priority || 'P1').toUpperCase();
+
+          md += `- ${checked} **[${priority}] ${itemTitle}**\n  ${itemDesc}\n`;
+        });
+        md += `\n`;
+      });
+
+      md += `## 4. Non-Functional Requirements\n`;
+      md += `- **Cold Start:** Under 1.2 seconds on standard Android devices.\n`;
+      md += `- **Offline-First:** All core bookkeeping & reporting functions require zero internet.\n`;
+      md += `- **Security:** Zero plaintext storage in external cloud, local app lock wrapper.\n\n`;
+
+      md += `---\n*Document maintained in root prd.html*\n`;
+      return md;
+    }
+
+    // Markdown Exporter for Checklist Only
+    function generateChecklistMarkdown() {
+      let md = `# Cash Book Feature Checklist Status\n\n`;
+      const allItems = document.querySelectorAll('.check-item');
+      let done = 0;
+      allItems.forEach(i => { if (checkedState[i.dataset.id]) done++; });
+      const percent = Math.round((done / allItems.length) * 100);
+
+      md += `**Overall Progress:** ${done}/${allItems.length} (${percent}% Completed)\n\n`;
+
+      const sections = document.querySelectorAll('.section-card[data-module]');
+      sections.forEach(sec => {
+        const title = sec.querySelector('.section-title').textContent.trim();
+        md += `### ${title}\n`;
+        const items = sec.querySelectorAll('.check-item');
+        items.forEach(item => {
+          const id = item.dataset.id;
+          const checked = checkedState[id] ? '[x]' : '[ ]';
+          const itemTitle = item.querySelector('.item-title').textContent.trim();
+          md += `- ${checked} ${itemTitle}\n`;
+        });
+        md += `\n`;
+      });
+
+      return md;
+    }
+
+    // Copy to Clipboard Helper
+    async function copyText(text, successMessage) {
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast(successMessage);
+      } catch (err) {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast(successMessage);
+      }
+    }
+
+    // Header Copy Buttons
+    document.getElementById('btnCopyAll').addEventListener('click', () => {
+      const md = generateFullMarkdown();
+      copyText(md, 'Full PRD copied in Markdown format!');
+    });
+
+    document.getElementById('btnCopyChecklist').addEventListener('click', () => {
+      const md = generateChecklistMarkdown();
+      copyText(md, 'Checklist summary copied to clipboard!');
+    });
+
+    // Individual Section Copy Buttons
+    document.querySelectorAll('.btn-copy-section').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const card = btn.closest('.section-card');
+        const title = card.querySelector('.section-title')?.textContent.trim() || 'Section';
+        let content = `## ${title}\n\n`;
+
+        const checkItems = card.querySelectorAll('.check-item');
+        if (checkItems.length > 0) {
+          checkItems.forEach(item => {
+            const id = item.dataset.id;
+            const checked = checkedState[id] ? '[x]' : '[ ]';
+            const itemTitle = item.querySelector('.item-title').textContent.trim();
+            const itemDesc = item.querySelector('.item-desc').textContent.trim();
+            content += `- ${checked} **${itemTitle}**: ${itemDesc}\n`;
+          });
+        } else {
+          // Plain text content
+          content += card.innerText.replace(/Copy Section/g, '').trim();
+        }
+
+        copyText(content, `Copied "${title}" section!`);
+      });
+    });
+
+    // Run on startup
+    window.addEventListener('DOMContentLoaded', () => {
+      initChecklist();
+    });
+  </script>
+</body>
+</html>
+

@@ -69,14 +69,14 @@ class InterstitialAdManager {
   }
 
   /// Show the interstitial ad if available, or wait briefly (up to [timeout]) if it is loading.
-  /// Then execute [onComplete]. If the ad is not ready or times out, [onComplete] is executed
-  /// immediately so the user experience is never blocked.
+  /// Then execute [onComplete]. If the ad is already cached in memory, it renders immediately (0ms).
   Future<void> showAdThen({
     required VoidCallback onComplete,
-    Duration timeout = const Duration(seconds: 3),
+    Duration timeout = const Duration(seconds: 4),
   }) async {
-    // 1. If ad is already ready, show immediately!
+    // 1. If ad is ALREADY ready (preloaded when sheet opened), show immediately!
     if (_interstitialAd != null) {
+      debugPrint('=== [AdMob] Preloaded Report Interstitial Ad is ready. Showing instantly! ===');
       _showLoadedAd(onComplete);
       return;
     }
@@ -96,9 +96,10 @@ class InterstitialAdManager {
     }
 
     if (loaded && _interstitialAd != null) {
+      debugPrint('=== [AdMob] Report Interstitial Ad finished loading just in time. Showing! ===');
       _showLoadedAd(onComplete);
     } else {
-      debugPrint('=== [AdMob] Ad not ready in time, proceeding directly with action ===');
+      debugPrint('=== [AdMob] Report Interstitial Ad not ready in time, proceeding directly with action ===');
       onComplete();
     }
   }
